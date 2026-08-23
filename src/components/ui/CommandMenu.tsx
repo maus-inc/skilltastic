@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
+
+/** Strong ease-out (animations.dev): dropdowns tween 150–250ms out of
+ *  their trigger — springs are for gestures, not menus. */
+const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
 import { CheckIcon, SearchIcon } from "./icons";
 
 export interface CommandEntry {
@@ -92,10 +96,14 @@ export function CommandMenu({
     <motion.div
       className="cmd"
       role="listbox"
-      initial={{ opacity: 0, scale: 0.95, y: -4 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.97, y: -4, transition: { duration: 0.1 } }}
-      transition={{ type: "spring", stiffness: 560, damping: 34, mass: 0.7 }}
+      initial={{ opacity: 0, transform: "scale(0.95) translateY(-6px)" }}
+      animate={{ opacity: 1, transform: "scale(1) translateY(0px)" }}
+      exit={{
+        opacity: 0,
+        transform: "scale(0.96) translateY(-4px)",
+        transition: { duration: 0.12, ease: EASE_OUT },
+      }}
+      transition={{ duration: 0.18, ease: EASE_OUT }}
       style={{ transformOrigin: "top right" }}
       onKeyDown={onKeyDown}
     >
@@ -119,20 +127,27 @@ export function CommandMenu({
             {group.items.map((entry) => {
               const index = filtered.indexOf(entry);
               return (
-                <div
+                <motion.div
                   key={entry.id}
                   role="option"
                   aria-selected={entry.checked ?? false}
                   data-highlighted={index === highlight}
                   data-checked={entry.checked ?? false}
                   className="cmd-item"
+                  initial={{ opacity: 0, transform: "translateY(-3px)" }}
+                  animate={{ opacity: 1, transform: "translateY(0px)" }}
+                  transition={{
+                    duration: 0.15,
+                    ease: EASE_OUT,
+                    delay: Math.min(index * 0.015, 0.12),
+                  }}
                   onMouseEnter={() => setHighlight(index)}
                   onMouseDown={(e) => e.preventDefault()} // keep input focus
                   onClick={() => select(entry)}
                 >
                   <span className="cmd-item-label">{entry.label}</span>
                   {entry.checked && <CheckIcon size={13} />}
-                </div>
+                </motion.div>
               );
             })}
           </div>

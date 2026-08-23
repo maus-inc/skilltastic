@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { ToolFolderInfo } from "../../types";
 import { Button } from "../ui/Button";
 
@@ -14,6 +15,23 @@ interface TopbarProps {
 }
 
 export function Topbar({ title, subtitle, folders, query, onQueryChange, onForgetProject, onNewSkill }: TopbarProps) {
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // ⌘K / Ctrl+K focuses search whenever nothing else has claimed it;
+  // Escape hands focus back. Keyboard-initiated, so no animation (the
+  // keycap chip just fades since focus state changed).
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   return (
     <div className="topbar">
       <div className="topbar-title">
@@ -39,12 +57,19 @@ export function Topbar({ title, subtitle, folders, query, onQueryChange, onForge
             new skill
           </Button>
         )}
-        <input
-          className="search"
-          placeholder="search skills..."
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-        />
+        <div className="search-wrap">
+          <input
+            ref={searchRef}
+            className="search"
+            placeholder="search skills..."
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") (e.target as HTMLInputElement).blur();
+            }}
+          />
+          <kbd className="kbd">⌘K</kbd>
+        </div>
         {onForgetProject && (
           <Button variant="destructive" size="sm" onClick={onForgetProject}>
             forget project
