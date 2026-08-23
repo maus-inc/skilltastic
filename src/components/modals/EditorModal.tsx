@@ -67,15 +67,15 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
                 return (
                   <span
                     key={t.id}
-                    className={`chip ${via?.role === "compat" ? "compat" : ""}`}
-                    title={via?.role === "compat" ? `via the shared ${skill.tool} folder` : "primary location"}
+                    className={`chip chip--iconic ${via?.role === "compat" ? "compat" : ""}`}
+                    title={via?.role === "compat" ? `${t.label} — via the shared ${skill.tool} folder` : `${t.label} — primary location`}
                   >
                     <img
                       className="chip-mark"
                       src={provider((t.folders.find((f) => f.role === "own") ?? t.folders[0]).tool).icon}
-                      alt=""
+                      alt={t.label}
                     />
-                    {t.label}
+                    <span className="chip-label">{t.label}</span>
                   </span>
                 );
               })}
