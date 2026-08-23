@@ -49,6 +49,10 @@ src/
 
 - **Data flows through hooks.** Components stay presentational; fetching and
   mutations live in `hooks/`, IPC in `api/`. Keep it that way.
+- **Skill lists key on `stableSkillKey`, never the raw manifest id.**
+  Toggling moves the folder into/out of `.disabled`, changing the id; a
+  key change would remount the card (exit animation — the skill visibly
+  "disappears"). Mutations match on the stable key for the same reason.
 - **Types mirror serde.** Rust structs serialize `camelCase`
   (`#[serde(rename_all = "camelCase")]`); the TS types in `src/types/` must
   match field-for-field.

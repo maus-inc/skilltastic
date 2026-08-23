@@ -142,6 +142,7 @@ export function Sidebar({
               key={seg.id}
               role="radio"
               aria-checked={viewMode === seg.id}
+              aria-label={seg.label}
               className={`view-seg-btn ${viewMode === seg.id ? "active" : ""}`}
               onClick={() => onViewModeChange(seg.id)}
               title={seg.label}

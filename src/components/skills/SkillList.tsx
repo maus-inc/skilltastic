@@ -1,5 +1,6 @@
 import { AnimatePresence } from "motion/react";
 import type { Skill, ToolEntry } from "../../types";
+import { stableSkillKey } from "../../utils/stableSkillKey";
 import { SkillCard } from "./SkillCard";
 
 interface SkillListProps {
@@ -24,7 +25,7 @@ export function SkillList({ skills, toolEntries, emptyHint, onToggle, onOpen }: 
     <AnimatePresence initial={false} mode="popLayout">
       {skills.map((skill, index) => (
         <SkillCard
-          key={skill.id}
+          key={stableSkillKey(skill)}
           skill={skill}
           index={index}
           toolEntries={toolEntries}
