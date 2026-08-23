@@ -28,6 +28,9 @@ src/
     useProjectSkills.ts   per-project skill lists and counts
     useSkillMutations.ts  toggle/delete/save/create with optimistic updates
     usePinnedTools.ts     localStorage-backed tool pins ("skilltastic:pinned-tools")
+    useManualOrder.ts     drag-reorder persistence ("skilltastic:tool-order",
+                          "skilltastic:project-order"); view mode persists as
+                          "skilltastic:view-mode"
   utils/          pure, unit-tested helpers
     filterSkills.ts       search/tool/view filtering
     sidebarLists.ts       pin ordering + most-used project selection

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { orderToolsByPin, selectVisibleProjects } from "../sidebarLists";
+import { applyManualOrder, orderToolsByPin, selectVisibleProjects } from "../sidebarLists";
 import type { ProjectInfo, ToolEntry } from "../../types";
 
 const now = Date.now() / 1000;
@@ -74,5 +74,25 @@ describe("selectVisibleProjects", () => {
     ];
     const { visible } = selectVisibleProjects(projects, 3, 3);
     expect(visible[0].path).toBe("/fresh");
+  });
+});
+
+describe("applyManualOrder", () => {
+  const items = [{ id: "a" }, { id: "b" }, { id: "c" }];
+
+  it("returns items untouched when no order is stored", () => {
+    expect(applyManualOrder(items, [], (i) => i.id)).toEqual(items);
+  });
+
+  it("sorts by the stored order", () => {
+    expect(applyManualOrder(items, ["c", "a", "b"], (i) => i.id).map((i) => i.id)).toEqual([
+      "c",
+      "a",
+      "b",
+    ]);
+  });
+
+  it("keeps unknown items after known ones, in relative order", () => {
+    expect(applyManualOrder(items, ["b"], (i) => i.id).map((i) => i.id)).toEqual(["b", "a", "c"]);
   });
 });

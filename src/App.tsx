@@ -23,6 +23,13 @@ function App() {
   const [view, setView] = useState<View>({ kind: "global" });
   const [activeToolId, setActiveToolId] = useState<string | typeof ALL>(ALL);
   const [tabs, setTabs] = useState<TitleTab[]>([]);
+  const [viewMode, setViewMode] = useState<"list" | "cards">(() => {
+    try {
+      return localStorage.getItem("skilltastic:view-mode") === "cards" ? "cards" : "list";
+    } catch {
+      return "list";
+    }
+  });
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Skill | null>(null);
   const [addingProject, setAddingProject] = useState(false);
@@ -35,6 +42,15 @@ function App() {
   const pinnedTools = usePinnedTools();
   const activeProject = view.kind === "project" ? view.project : null;
   const projectView = useProjectSkills(activeProject);
+
+  function changeViewMode(mode: "list" | "cards") {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("skilltastic:view-mode", mode);
+    } catch {
+      /* preference just won't persist */
+    }
+  }
 
   const activeTool =
     activeToolId === ALL
@@ -192,6 +208,8 @@ function App() {
         onShowAllProjects={() => setShowingAllProjects(true)}
         view={view}
         activeToolId={activeToolId}
+        viewMode={viewMode}
+        onViewModeChange={changeViewMode}
         onSelectAll={selectAll}
         onSelectTool={selectTool}
         onOpenProject={openProject}
@@ -209,7 +227,7 @@ function App() {
           onNewSkill={() => setCreatingSkill(true)}
         />
 
-        <div className="skill-list" ref={skillListRef}>
+        <div className={`skill-list ${viewMode === "cards" ? "skill-list--cards" : ""}`} ref={skillListRef}>
           {view.kind === "global" ? (
             <SkillList
               skills={filteredGlobal}
