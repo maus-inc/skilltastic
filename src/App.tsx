@@ -13,8 +13,6 @@ import { useProjects } from "./hooks/useProjects";
 import { useProjectSkills } from "./hooks/useProjectSkills";
 import { filterSkills } from "./utils/filterSkills";
 import { provider } from "./components/ui/providers";
-import { DevDiag } from "./components/ui/DevDiag";
-import { IN_TAURI } from "./api/runtime";
 import { HOME_TAB_ID, projectTabId, toolTabId } from "./types";
 import type { AgentTool, ProjectInfo, Skill, TitleTab, ToolEntry, View } from "./types";
 import "./App.css";
@@ -181,7 +179,6 @@ function App() {
 
   return (
     <div className="shell">
-      {!IN_TAURI && import.meta.env.DEV && <DevDiag />}
       <TitleBar
         tabs={tabs}
         activeTabId={activeTabId}

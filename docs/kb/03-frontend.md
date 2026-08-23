@@ -103,18 +103,20 @@ src/
   `svgToIcon` honestly rejects fill-only icons — never fake a fill
   logo into a path morph.
 - **Morph buttons (`btn-morph`):** the label⇄icon hover morph (new
-  skill, editor edit/delete) stacks both states in ONE grid cell, so
-  the button footprint never changes while morphing — the label
-  fades/scales in place while the icon rotates in centered. Never
-  animate the button's width; pointer-gated, reduced-motion keeps the
-  fade only.
+  skill, editor edit/delete) keeps the label in NORMAL FLOW — it alone
+  sizes the button and keeps its footprint at opacity 0, so the button
+  never changes size or collapses — while the icon sits absolutely
+  centered over it and rotates in. Never animate the button's width;
+  never stack the states with grid (grid-area stacking rendered as an
+  unpainted button in real browsers); pointer-gated, reduced-motion
+  keeps the fade only.
 - **Tooltips:** `[data-tip]` / `[data-tip-side="top"]` css tooltips
   (350ms intent delay) replace native `title` on window chrome, pins
   and the scope chip. Prefer them over `title` on interactive chrome.
 - **Perf contract (60fps):** backdrop blur only on floating layers
-  (popover/modals, 14px) — never the full-height panels; every motion
-  transform uses full `transform` strings (GPU-composited), never
-  x/y/scale shorthands.
+  (popover/modals, 14px) — never the full-height panels; declarative
+  motion states (initial/animate/exit) use full `transform` strings
+  (GPU-composited). Gesture props are the exception — see the doctrine.
 - **Motion:** the `motion` package (Framer) via `motion/react`.
   Transform ownership is exclusive: if motion animates an element, CSS
   must not transition its transform. `MotionConfig reducedMotion="user"`
@@ -127,8 +129,12 @@ src/
   `cubic-bezier(0.23,1,0.32,1)` (`--ease-out` token), scaling from
   0.95–0.97 out of the trigger's transform-origin — never `scale(0)`,
   never `ease-in`, never >300ms on UI. Exits mirror entries but
-  faster. In motion props use full `transform` strings (GPU) rather
-  than x/y/scale shorthands. Hover motion stays near-imperceptible
+  faster. In declarative motion props (initial/animate/exit) use full
+  `transform` strings (GPU); in GESTURE props (`whileTap`,
+  `whileHover`) use the `scale`/`x`/`y` shorthands instead — a full
+  `transform` string there left controls stuck unpainted in real
+  browsers (the "disappearing buttons" bug the shorthands fixed).
+  Hover motion stays near-imperceptible
   (≤2px) and is CSS-owned with a reduced-motion gate. Keyboard-
   initiated actions (⌘K) get no animation.
 - **Edge light ("streak"):** every raised dark surface carries a 1px
@@ -176,7 +182,8 @@ The OS title bar is replaced with a Figma-style one (`layout/TitleBar.tsx`):
 ## Testing
 
 ```bash
-npm test              # vitest, runs src/utils/__tests__
+npm test              # vitest: utils specs, api fixture surface, and the
+                      # app click-through suite (src/**/__tests__)
 npx tsc --noEmit      # strict typecheck, must pass clean
 ```
 
