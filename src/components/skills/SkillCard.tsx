@@ -59,6 +59,11 @@ export function SkillCard({ skill, toolEntries, onToggle, onOpen }: SkillCardPro
                 key={t.id}
                 className={`chip ${t.folders.find((f) => f.tool === skill.tool)?.role === "compat" ? "compat" : ""}`}
               >
+                <img
+                  className="chip-mark"
+                  src={provider((t.folders.find((f) => f.role === "own") ?? t.folders[0]).tool).icon}
+                  alt=""
+                />
                 {t.label}
               </span>
             ))}
