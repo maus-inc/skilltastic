@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { Badge } from "../ui/Badge";
 import { provider } from "../ui/providers";
+import { RollingLabel } from "../ui/RollingLabel";
 import { Switch } from "../ui/Switch";
 import type { Skill, ToolEntry } from "../../types";
 
@@ -26,12 +27,19 @@ export function SkillCard({ skill, toolEntries, onToggle, onOpen }: SkillCardPro
       className={`skill-card ${skill.enabled ? "" : "disabled"}`}
       onClick={() => onOpen(skill)}
     >
-      <Switch
-        checked={skill.enabled}
-        onCheckedChange={() => onToggle(skill)}
-        aria-label={`${skill.enabled ? "disable" : "enable"} ${skill.name}`}
-        title={skill.enabled ? "disable" : "enable"}
-      />
+      <div className="switch-col">
+        <Switch
+          checked={skill.enabled}
+          onCheckedChange={() => onToggle(skill)}
+          aria-label={`${skill.enabled ? "disable" : "enable"} ${skill.name}`}
+          title={skill.enabled ? "disable" : "enable"}
+        />
+        <RollingLabel
+          text={skill.enabled ? "on" : "off"}
+          direction={skill.enabled ? "up" : "down"}
+          className={skill.enabled ? "is-on" : ""}
+        />
+      </div>
 
       <div className="skill-main">
         <div className="skill-name-row">
