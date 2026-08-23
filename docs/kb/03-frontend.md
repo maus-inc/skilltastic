@@ -74,6 +74,14 @@ src/
   animation — spring-based, through `motion/react`. Transform ownership
   is exclusive: if motion animates an element, CSS must not transition
   its transform. `MotionConfig reducedMotion="user"` is set at the root.
+- **Edge light ("streak"):** every raised dark surface carries a 1px
+  white inset streak along its top edge — tokens `--streak` (0.07),
+  `--streak-md` (0.11); white surfaces (default buttons, checked
+  switch) instead carry `--streak-black` (inset bottom shade + faint
+  dark ring). The streaks are folded into the depth tokens, so panels
+  get them for free; when writing a custom box-shadow, put the streak
+  first. Hover highlights are opaque grey (#2e2e2e + streak), never
+  blue.
 - **Depth:** layered shadow tokens in `:root` (`--shadow-panel`,
   `--shadow-float`, `--shadow-modal`: hairline ring → contact → ambient
   → cast) plus `--blur-panel` backdrop blur on panels, menus, and

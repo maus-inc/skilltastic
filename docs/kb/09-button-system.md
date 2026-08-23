@@ -45,6 +45,10 @@ default to 14px inside buttons and don't shrink.
 - `aria-invalid`: danger border + danger ring
 - motion: `whileTap` scale 0.97 spring (our substitute for the source's
   `transition-all`; transforms stay motion-owned per the motion rule)
+- edge light: dark variants (outline/secondary, ghost on hover,
+  destructive) carry a top white inset streak; `default` (white)
+  carries `--streak-black` — the inset bottom shade. See the streak
+  entry in 03-frontend.md.
 
 ## Mapping table (what replaced what)
 

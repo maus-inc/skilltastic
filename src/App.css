@@ -18,14 +18,22 @@
   --font-sans: "Satoshi", Inter, -apple-system, "Segoe UI", system-ui, sans-serif;
   --font-mono: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace,
     Menlo, Consolas, monospace;
-  /* layered depth: hairline ring → contact → ambient → cast */
-  --shadow-panel: 0 0 0 1px rgba(255, 255, 255, 0.06),
+  /* top inline streaks — the "lit from above" edge */
+  --streak: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --streak-md: inset 0 1px 0 rgba(255, 255, 255, 0.11);
+  --streak-black: inset 0 -1.5px 0 rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  /* layered depth: top streak → hairline ring → contact → ambient → cast */
+  --shadow-panel: inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(255, 255, 255, 0.06),
     0 1px 1px rgba(0, 0, 0, 0.4), 0 4px 10px rgba(0, 0, 0, 0.35),
     0 14px 32px rgba(0, 0, 0, 0.3);
-  --shadow-float: 0 0 0 1px rgba(255, 255, 255, 0.08),
+  --shadow-float: inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 16px rgba(0, 0, 0, 0.45),
     0 20px 48px rgba(0, 0, 0, 0.42);
-  --shadow-modal: 0 0 0 1px rgba(255, 255, 255, 0.09),
+  --shadow-modal: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.09),
     0 2px 4px rgba(0, 0, 0, 0.55), 0 12px 32px rgba(0, 0, 0, 0.5),
     0 32px 80px rgba(0, 0, 0, 0.5);
   --blur-panel: blur(22px) saturate(1.25);
@@ -128,6 +136,7 @@ body,
 .tb-home.active {
   background: var(--tb-tab-active);
   color: var(--tb-text);
+  box-shadow: var(--streak);
 }
 
 /* file tabs */
@@ -159,6 +168,7 @@ body,
 .tb-tab.active {
   background: var(--tb-tab-active);
   color: var(--tb-text);
+  box-shadow: var(--streak);
 }
 
 /* thin divider between adjacent inactive tabs, suppressed around the
@@ -339,7 +349,8 @@ body,
 }
 
 .cmd-item[data-highlighted="true"] {
-  background: #0d99ff;
+  background: #2e2e2e;
+  box-shadow: var(--streak-md);
   color: #fff;
 }
 
@@ -658,11 +669,12 @@ body,
 }
 
 .search {
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid var(--border);
+  background: #151515;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text);
-  padding: 4px 9px;
-  border-radius: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  box-shadow: var(--streak), 0 1px 2px rgba(0, 0, 0, 0.4);
   font-family: var(--font-mono);
   font-size: 11.5px;
   flex: 1 1 160px;
@@ -719,14 +731,14 @@ body,
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 9px;
   padding: 9px 12px;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--streak), 0 1px 1px rgba(0, 0, 0, 0.3);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .skill-card:hover {
   border-color: var(--border-strong);
   cursor: pointer;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05),
+  box-shadow: var(--streak-md), 0 0 0 1px rgba(255, 255, 255, 0.05),
     0 2px 4px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
@@ -794,6 +806,7 @@ body,
   padding: 0;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.12);
+  box-shadow: var(--streak);
   border: 1px solid transparent;
   cursor: pointer;
   flex-shrink: 0;
@@ -807,6 +820,7 @@ body,
 
 .switch[data-state="checked"] {
   background: var(--accent);
+  box-shadow: var(--streak-black);
 }
 
 .switch:disabled {
@@ -870,7 +884,7 @@ body,
 }
 
 .wm-btn:focus-visible {
-  box-shadow: 0 0 0 1px var(--bg), 0 0 0 3px rgba(255, 255, 255, 0.35);
+  box-shadow: var(--streak), 0 0 0 1px var(--bg), 0 0 0 3px rgba(255, 255, 255, 0.35);
 }
 
 .wm-btn[aria-invalid="true"] {
@@ -883,6 +897,7 @@ body,
 .wm-btn--default {
   background: var(--accent);
   color: #000;
+  box-shadow: var(--streak-black), 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .wm-btn--default:hover {
@@ -892,6 +907,7 @@ body,
 .wm-btn--destructive {
   background: rgba(239, 68, 68, 0.6);
   color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .wm-btn--destructive:hover {
@@ -906,7 +922,7 @@ body,
   border-color: var(--border);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text);
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--streak-md), 0 1px 1px rgba(0, 0, 0, 0.35);
 }
 
 .wm-btn--outline:hover {
@@ -917,6 +933,7 @@ body,
 .wm-btn--secondary {
   background: rgba(255, 255, 255, 0.12);
   color: var(--text);
+  box-shadow: var(--streak-md), 0 1px 1px rgba(0, 0, 0, 0.3);
 }
 
 .wm-btn--secondary:hover {
@@ -931,6 +948,7 @@ body,
 .wm-btn--ghost:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text);
+  box-shadow: var(--streak);
 }
 
 .wm-btn--link {
