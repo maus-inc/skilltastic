@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://maus-inc.github.io/skilltastic/sitemap.xml

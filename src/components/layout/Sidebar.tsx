@@ -1,0 +1,193 @@
+import { useEffect, useState } from "react";
+import { getVersion } from "@tauri-apps/api/app";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { orderToolsByPin, selectVisibleProjects } from "../../utils/sidebarLists";
+import { PinIcon } from "../ui/icons";
+import type { ProjectInfo, ToolEntry, View } from "../../types";
+
+const ALL = "all" as const;
+const REPO_URL = "https://github.com/maus-inc/skilltastic";
+/** Rows shown for tools before the list collapses behind "more". */
+const PREVIEW_COUNT = 6;
+/** Most-used projects (30-day window) shown before the "more" dialog. */
+const MOST_USED_COUNT = 3;
+/** Minimum project rows in the sidebar for a fresh, usage-less setup. */
+const MIN_PROJECT_ROWS = 3;
+
+function link(url: string) {
+  return () => openUrl(url).catch(console.error);
+}
+
+interface SidebarProps {
+  toolEntries: ToolEntry[];
+  totalSkillCount: number;
+  countForEntry: (entry: ToolEntry) => number;
+  pinnedTools: Set<string>;
+  onTogglePinTool: (toolId: string) => void;
+  projects: ProjectInfo[];
+  /** tracked path → skill count, for row badges */
+  skillCounts: Record<string, number>;
+  onTogglePinProject: (project: ProjectInfo) => void;
+  onShowAllProjects: () => void;
+  view: View;
+  activeToolId: string | typeof ALL;
+  onSelectAll: () => void;
+  onSelectTool: (toolId: string) => void;
+  onOpenProject: (project: ProjectInfo) => void;
+  onAddProject: () => void;
+}
+
+export function Sidebar({
+  toolEntries,
+  totalSkillCount,
+  countForEntry,
+  pinnedTools,
+  onTogglePinTool,
+  projects,
+  skillCounts,
+  onTogglePinProject,
+  onShowAllProjects,
+  view,
+  activeToolId,
+  onSelectAll,
+  onSelectTool,
+  onOpenProject,
+  onAddProject,
+}: SidebarProps) {
+  const [version, setVersion] = useState("");
+  const [toolsExpanded, setToolsExpanded] = useState(false);
+
+  useEffect(() => {
+    getVersion().then(setVersion).catch(console.error);
+  }, []);
+
+  const sortedTools = orderToolsByPin(toolEntries, pinnedTools);
+  const visibleTools = toolsExpanded ? sortedTools : sortedTools.slice(0, PREVIEW_COUNT);
+  const hiddenTools = sortedTools.length - visibleTools.length;
+
+  const { visible: visibleProjects, hiddenCount: hiddenProjects } = selectVisibleProjects(
+    projects,
+    MOST_USED_COUNT,
+    MIN_PROJECT_ROWS,
+  );
+
+  return (
+    <aside className="sidebar">
+      <div className="brand">
+        <img src="/skilltastic.png" alt="Skilltastic" />
+        <span className="brand-name">
+          Skill <span className="accent">Manager</span>
+        </span>
+      </div>
+
+      <div
+        className={`nav-item ${view.kind === "global" && activeToolId === ALL ? "active" : ""}`}
+        onClick={onSelectAll}
+      >
+        <span>all skills</span>
+        <span className="count">{totalSkillCount}</span>
+      </div>
+
+      {visibleTools.map((entry) => {
+        const anyDirExists = entry.folders.some((f) => f.dirExists);
+        return (
+          <div
+            key={entry.id}
+            className={`nav-item ${view.kind === "global" && activeToolId === entry.id ? "active" : ""}`}
+            onClick={() => onSelectTool(entry.id)}
+            title={entry.folders.map((f) => f.dir).join("\n")}
+          >
+            <span className={anyDirExists ? "" : "dir-missing"}>{entry.label}</span>
+            <span className="nav-right">
+              <button
+                className={`pin-btn ${pinnedTools.has(entry.id) ? "pinned" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePinTool(entry.id);
+                }}
+                title={pinnedTools.has(entry.id) ? "unpin" : "pin"}
+              >
+                <PinIcon />
+              </button>
+              <span className="count">{countForEntry(entry)}</span>
+            </span>
+          </div>
+        );
+      })}
+
+      {hiddenTools > 0 && (
+        <div className="nav-item expand" onClick={() => setToolsExpanded(true)}>
+          <span>+ {hiddenTools} more</span>
+        </div>
+      )}
+      {toolsExpanded && sortedTools.length > PREVIEW_COUNT && (
+        <div className="nav-item expand" onClick={() => setToolsExpanded(false)}>
+          <span>show less</span>
+        </div>
+      )}
+
+      <div className="nav-section-label">projects</div>
+
+      {visibleProjects.map((p) => (
+        <div
+          key={p.path}
+          className={`nav-item ${view.kind === "project" && view.project.path === p.path ? "active" : ""}`}
+          onClick={() => onOpenProject(p)}
+          title={p.path}
+        >
+          <span>{p.name}</span>
+          <span className="nav-right">
+            {skillCounts[p.path] !== undefined && (
+              <span className="count">{skillCounts[p.path]}</span>
+            )}
+            <button
+              className={`pin-btn ${p.pinned ? "pinned" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePinProject(p);
+              }}
+              title={p.pinned ? "unpin" : "pin"}
+            >
+              <PinIcon />
+            </button>
+          </span>
+        </div>
+      ))}
+
+      {hiddenProjects > 0 && (
+        <div className="nav-item expand" onClick={onShowAllProjects}>
+          <span>+ {hiddenProjects} more</span>
+        </div>
+      )}
+
+      <div className="nav-item add-project" onClick={onAddProject}>
+        <span>+ add project</span>
+      </div>
+
+      <div className="sidebar-footer">
+        <div className="footer-row">
+          <img src="/skilltastic.png" alt="Skilltastic" />
+          <span className="footer-name">
+            Skill <span className="accent">Manager</span>
+          </span>
+          {version && (
+            <a
+              className="footer-version"
+              onClick={link(`${REPO_URL}/releases/latest`)}
+              title="release notes"
+            >
+              v{version}
+            </a>
+          )}
+        </div>
+        <div className="footer-links">
+          <a onClick={link(REPO_URL)}>github</a>
+          <span className="sep">·</span>
+          <a onClick={link(`${REPO_URL}/issues/new?template=bug_report.yml`)}>report a bug</a>
+          <span className="sep">·</span>
+          <a onClick={link(`${REPO_URL}/blob/main/LICENSE`)}>mit</a>
+        </div>
+      </div>
+    </aside>
+  );
+}
