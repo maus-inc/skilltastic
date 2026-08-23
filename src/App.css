@@ -563,6 +563,42 @@ body,
   opacity: 0.8;
 }
 
+/* iconic chips: mark only at rest, label slides out on hover */
+.chip--iconic {
+  gap: 0;
+}
+
+.chip--iconic .chip-label {
+  display: block;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition: max-width 200ms var(--ease-out), opacity 150ms var(--ease-out),
+    margin-left 200ms var(--ease-out);
+  margin-left: 0;
+}
+
+.chip--iconic:hover .chip-label {
+  max-width: 90px;
+  opacity: 1;
+  margin-left: 4px;
+}
+
+@media (hover: none) {
+  .chip--iconic .chip-label {
+    max-width: 90px;
+    opacity: 1;
+    margin-left: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip--iconic .chip-label {
+    transition: opacity 150ms var(--ease-out);
+  }
+}
+
 .nav-section-label {
   font-size: 9.5px;
   font-weight: 700;
@@ -951,6 +987,7 @@ body,
 }
 
 .rolling-label {
+  position: relative; /* anchors popLayout's absolutely-positioned exits */
   display: block;
   height: 11px;
   min-width: 24px;
@@ -972,7 +1009,7 @@ body,
 }
 
 .skill-card:hover .rolling-label,
-.switch-col:focus-within .rolling-label {
+.switch-col:has(:focus-visible) .rolling-label {
   opacity: 1;
 }
 

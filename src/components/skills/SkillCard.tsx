@@ -57,14 +57,15 @@ export function SkillCard({ skill, toolEntries, onToggle, onOpen }: SkillCardPro
             {seers.slice(0, 3).map((t) => (
               <span
                 key={t.id}
-                className={`chip ${t.folders.find((f) => f.tool === skill.tool)?.role === "compat" ? "compat" : ""}`}
+                className={`chip chip--iconic ${t.folders.find((f) => f.tool === skill.tool)?.role === "compat" ? "compat" : ""}`}
+                title={t.label}
               >
                 <img
                   className="chip-mark"
                   src={provider((t.folders.find((f) => f.role === "own") ?? t.folders[0]).tool).icon}
-                  alt=""
+                  alt={t.label}
                 />
-                {t.label}
+                <span className="chip-label">{t.label}</span>
               </span>
             ))}
             {seers.length > 3 && <span className="chip more">+{seers.length - 3}</span>}
