@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { Badge } from "../ui/Badge";
+import { FolderIcon, GlobeIcon } from "../ui/icons";
 import { provider } from "../ui/providers";
 import { RollingLabel } from "../ui/RollingLabel";
 import { Switch } from "../ui/Switch";
@@ -47,7 +48,6 @@ export function SkillCard({ skill, toolEntries, onToggle, onOpen }: SkillCardPro
           <Badge icon={provider(skill.tool).icon} iconAlt={provider(skill.tool).label}>
             {provider(skill.tool).label}
           </Badge>
-          <Badge>{skill.scope}</Badge>
         </div>
         {skill.description && <div className="skill-desc">{skill.description}</div>}
         <div className="skill-path">{skill.path}</div>
@@ -72,6 +72,13 @@ export function SkillCard({ skill, toolEntries, onToggle, onOpen }: SkillCardPro
           </div>
         )}
       </div>
+      <span
+        className="chip chip--iconic scope-corner"
+        title={skill.scope === "user" ? "global skill" : "project skill"}
+      >
+        {skill.scope === "user" ? <GlobeIcon size={10} /> : <FolderIcon size={10} />}
+        <span className="chip-label">{skill.scope === "user" ? "global" : "project"}</span>
+      </span>
     </motion.div>
   );
 }

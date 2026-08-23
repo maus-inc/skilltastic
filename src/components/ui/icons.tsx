@@ -1,6 +1,7 @@
 import {
   Check,
   Folder,
+  Globe,
   HomeSimple,
   Minus,
   MoreHoriz,
@@ -69,6 +70,10 @@ export function SearchIcon(props: IconProps) {
 
 export function CheckIcon(props: IconProps) {
   return <Check {...p(props)} />;
+}
+
+export function GlobeIcon(props: IconProps) {
+  return <Globe {...p(props)} />;
 }
 
 export function MinimizeIcon(props: IconProps) {
