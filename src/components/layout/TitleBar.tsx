@@ -127,7 +127,7 @@ export function TitleBar({
         onClick={() => onActivateTab(HOME_TAB_ID)}
         title="all skills"
       >
-        <HomeIcon size={16} strokeWidth={1.5} />
+        <HomeIcon size={16} />
       </button>
 
       {/* file tabs */}
@@ -160,14 +160,14 @@ export function TitleBar({
               }}
               title="close tab"
             >
-              <CloseIcon size={12} strokeWidth={2} />
+              <CloseIcon size={12} />
             </button>
           </motion.div>
         ))}
         </AnimatePresence>
 
         <button className="tb-plus" onClick={onNewSkill} title="new skill">
-          <PlusIcon size={15} strokeWidth={1.6} />
+          <PlusIcon size={15} />
         </button>
       </div>
 
@@ -206,13 +206,13 @@ export function TitleBar({
       {!IS_MAC && (
         <div className="tb-controls">
           <button className="tb-ctl" onClick={winCtl("minimize")} title="minimize">
-            <MinimizeIcon size={15} strokeWidth={1.4} />
+            <MinimizeIcon size={15} />
           </button>
           <button className="tb-ctl" onClick={winCtl("toggleMaximize")} title={maximized ? "restore" : "maximize"}>
-            {maximized ? <RestoreIcon size={13} strokeWidth={1.4} /> : <MaximizeIcon size={12} strokeWidth={1.4} />}
+            {maximized ? <RestoreIcon size={13} /> : <MaximizeIcon size={12} />}
           </button>
           <button className="tb-ctl tb-ctl-close" onClick={winCtl("close")} title="close">
-            <CloseIcon size={15} strokeWidth={1.4} />
+            <CloseIcon size={15} />
           </button>
         </div>
       )}
