@@ -145,8 +145,10 @@ export function CommandMenu({
                   onMouseDown={(e) => e.preventDefault()} // keep input focus
                   onClick={() => select(entry)}
                 >
-                  <span className="cmd-item-label">{entry.label}</span>
-                  {entry.checked && <CheckIcon size={13} />}
+                  <span className="cmd-item-inner">
+                    <span className="cmd-item-label">{entry.label}</span>
+                    {entry.checked && <CheckIcon size={13} />}
+                  </span>
                 </motion.div>
               );
             })}
