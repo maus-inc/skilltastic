@@ -1,4 +1,5 @@
 import type { KeyboardEvent, MouseEvent } from "react";
+import { motion } from "motion/react";
 
 interface SwitchProps {
   checked: boolean;
@@ -14,7 +15,7 @@ interface SwitchProps {
  * (the shadcn/Base UI switch with `rounded-xs [&_span]:rounded-xs`):
  * a 32×18 track and 14px thumb, both squared to a 2px radius.
  * Proper `role="switch"` semantics: Space/Enter toggle, aria-checked
- * carries state. Styles live under `.switch` in App.css.
+ * carries state. The thumb is spring-animated via motion.
  */
 export function Switch({
   checked,
@@ -49,7 +50,12 @@ export function Switch({
       onClick={toggle}
       onKeyDown={onKeyDown}
     >
-      <span className="switch-thumb" />
+      <motion.span
+        className="switch-thumb"
+        initial={false}
+        animate={{ x: checked ? 14 : 0 }}
+        transition={{ type: "spring", stiffness: 700, damping: 32 }}
+      />
     </button>
   );
 }

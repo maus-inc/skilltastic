@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { IN_TAURI } from "../../api/runtime";
@@ -100,9 +101,15 @@ export function TitleBar({
 
       {/* file tabs */}
       <div className="tb-tabs">
+        <AnimatePresence initial={false}>
         {tabs.map((tab) => (
-          <div
+          <motion.div
             key={tab.id}
+            layout
+            initial={{ width: 0, opacity: 0, paddingLeft: 0, paddingRight: 0 }}
+            animate={{ width: "auto", opacity: 1, paddingLeft: 11, paddingRight: 7 }}
+            exit={{ width: 0, opacity: 0, paddingLeft: 0, paddingRight: 0 }}
+            transition={{ type: "spring", stiffness: 520, damping: 38, mass: 0.7 }}
             className={`tb-tab ${tab.id === activeTabId ? "active" : ""}`}
             onClick={() => onActivateTab(tab.id)}
             onAuxClick={(e) => {
@@ -124,8 +131,9 @@ export function TitleBar({
             >
               <CloseIcon size={12} strokeWidth={2} />
             </button>
-          </div>
+          </motion.div>
         ))}
+        </AnimatePresence>
 
         <button className="tb-plus" onClick={onNewSkill} title="new skill">
           <PlusIcon size={15} strokeWidth={1.6} />
@@ -144,8 +152,16 @@ export function TitleBar({
         >
           {IS_MAC ? <MoreIcon size={15} /> : <ChevronDownIcon size={14} />}
         </button>
+        <AnimatePresence>
         {menuOpen && (
-          <div className="tb-menu">
+          <motion.div
+            className="tb-menu"
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.97, y: -4, transition: { duration: 0.1 } }}
+            transition={{ type: "spring", stiffness: 560, damping: 34, mass: 0.7 }}
+            style={{ transformOrigin: "top right" }}
+          >
             <button className="tb-menu-item" onClick={menuAction(onNewSkill)}>
               new skill…
             </button>
@@ -162,8 +178,9 @@ export function TitleBar({
             >
               skilltastic on github
             </button>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
 
       {/* window controls — Windows/Linux only; macOS has traffic lights */}

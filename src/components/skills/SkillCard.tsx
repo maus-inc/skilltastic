@@ -1,3 +1,4 @@
+import { motion } from "motion/react";
 import { Switch } from "../ui/Switch";
 import type { Skill, ToolEntry } from "../../types";
 
@@ -13,7 +14,16 @@ export function SkillCard({ skill, toolEntries, onToggle, onOpen }: SkillCardPro
   const seers = toolEntries.filter((t) => t.folders.some((f) => f.tool === skill.tool));
 
   return (
-    <div className={`skill-card ${skill.enabled ? "" : "disabled"}`} onClick={() => onOpen(skill)}>
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.14 } }}
+      whileHover={{ y: -1 }}
+      transition={{ type: "spring", stiffness: 480, damping: 34, mass: 0.8 }}
+      className={`skill-card ${skill.enabled ? "" : "disabled"}`}
+      onClick={() => onOpen(skill)}
+    >
       <Switch
         checked={skill.enabled}
         onCheckedChange={() => onToggle(skill)}
@@ -44,6 +54,6 @@ export function SkillCard({ skill, toolEntries, onToggle, onOpen }: SkillCardPro
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
