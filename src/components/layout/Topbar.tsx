@@ -66,7 +66,7 @@ export function Topbar({ title, subtitle, folders, query, onQueryChange, onForge
             aria-label="new skill"
           >
             <span className="btn-morph-label">new skill</span>
-            <span className="btn-morph-plus">
+            <span className="btn-morph-icon">
               <PlusIcon size={14} strokeWidth={2} />
             </span>
           </Button>

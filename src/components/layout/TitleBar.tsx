@@ -18,7 +18,7 @@ import {
   PagePlusIcon,
   PlusIcon,
 } from "../ui/icons";
-import { MorphChevron, MorphGridFlask, MorphMaxRestore } from "../ui/morphs";
+import { MorphChevron, MorphMaxRestore, ToolTabMark } from "../ui/morphs";
 
 const REPO_URL = "https://github.com/maus-inc/skilltastic";
 
@@ -58,6 +58,7 @@ export function TitleBar({
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [maximized, setMaximized] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const markByToolId = new Map(tools.map((t) => [t.id, t.mark]));
 
   // Track native maximize state so the restore glyph stays honest.
   useEffect(() => {
@@ -157,6 +158,7 @@ export function TitleBar({
         className={`tb-home ${activeTabId === HOME_TAB_ID ? "active" : ""}`}
         onClick={() => onActivateTab(HOME_TAB_ID)}
         data-tip="all skills"
+        aria-label="all skills"
       >
         <HomeIcon size={16} />
       </button>
@@ -185,7 +187,11 @@ export function TitleBar({
               {tab.kind === "project" ? (
                 <FolderIcon size={12} />
               ) : (
-                <MorphGridFlask hover={hoveredTab === tab.id} />
+                <ToolTabMark
+                  hover={hoveredTab === tab.id}
+                  mark={markByToolId.get(tab.toolId) ?? ""}
+                  label={tab.label}
+                />
               )}
             </span>
             <span className="tb-tab-label">{tab.label}</span>
@@ -203,7 +209,7 @@ export function TitleBar({
         ))}
         </AnimatePresence>
 
-        <button className="tb-plus" onClick={onNewSkill} data-tip="new skill">
+        <button className="tb-plus" onClick={onNewSkill} data-tip="new skill" aria-label="new skill">
           <PlusIcon size={16} />
         </button>
       </div>
@@ -217,6 +223,7 @@ export function TitleBar({
           className={`tb-menu-btn ${menuOpen ? "open" : ""}`}
           onClick={() => setMenuOpen((o) => !o)}
           data-tip="menu"
+          aria-label="menu"
         >
           <span className="tb-menu-icon">
             {IS_MAC ? <MoreIcon size={16} /> : <MorphChevron open={menuOpen} />}

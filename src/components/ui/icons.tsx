@@ -1,7 +1,7 @@
 import {
   ArrowUpRight,
   Check,
-  Flask,
+  EditPencil,
   Folder,
   FolderPlus,
   Github,
@@ -17,6 +17,7 @@ import {
   Plus,
   Search,
   Square,
+  Trash,
   ViewGrid,
   Xmark,
 } from "iconoir-react";
@@ -97,10 +98,6 @@ export function GlobeIcon(props: IconProps) {
   return <Globe {...p(props)} />;
 }
 
-export function FlaskIcon(props: IconProps) {
-  return <Flask {...p(props)} />;
-}
-
 export function ListIcon(props: IconProps) {
   return <List {...p(props)} />;
 }
@@ -115,6 +112,14 @@ export function ArrowUpRightIcon(props: IconProps) {
 
 export function PagePlusIcon(props: IconProps) {
   return <PagePlus {...p(props)} />;
+}
+
+export function EditIcon(props: IconProps) {
+  return <EditPencil {...p(props)} />;
+}
+
+export function TrashIcon(props: IconProps) {
+  return <Trash {...p(props)} />;
 }
 
 export function FolderPlusIcon(props: IconProps) {

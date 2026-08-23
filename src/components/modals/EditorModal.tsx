@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "../ui/Button";
 import { provider } from "../ui/providers";
 import { api } from "../../api";
-import { CloseIcon } from "../ui/icons";
+import { CloseIcon, EditIcon, TrashIcon } from "../ui/icons";
 import { ModalShell } from "../ui/ModalShell";
 import { renderMarkdown } from "../../utils/markdown";
 import type { Skill, ToolEntry } from "../../types";
@@ -22,11 +22,27 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState<EditorMode>("view");
 
+  // Switching skills resets the surface before the new content lands, and
+  // a stale response from the previous skill can never overwrite the new
+  // one (the `active` guard drops it on cleanup).
   useEffect(() => {
-    api.readSkillContent(skill.id).then((text) => {
-      setContent(text);
-      setLoading(false);
-    });
+    let active = true;
+    setLoading(true);
+    setContent("");
+    setMode("view");
+    api
+      .readSkillContent(skill.id)
+      .then((text) => {
+        if (!active) return;
+        setContent(text);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [skill.id]);
 
   async function save() {
@@ -106,12 +122,32 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
           <Button
             variant={mode === "edit" ? "secondary" : "outline"}
             size="sm"
+            className={mode === "edit" ? undefined : "btn-morph"}
             onClick={() => setMode(mode === "edit" ? "view" : "edit")}
+            aria-label={mode === "edit" ? "view" : "edit"}
           >
-            {mode === "edit" ? "view" : "edit"}
+            {mode === "edit" ? (
+              "view"
+            ) : (
+              <>
+                <span className="btn-morph-label">edit</span>
+                <span className="btn-morph-icon">
+                  <EditIcon size={13} />
+                </span>
+              </>
+            )}
           </Button>
-          <Button variant="destructive" size="sm" onClick={remove}>
-            delete
+          <Button
+            variant="destructive"
+            size="sm"
+            className="btn-morph"
+            onClick={remove}
+            aria-label="delete"
+          >
+            <span className="btn-morph-label">delete</span>
+            <span className="btn-morph-icon">
+              <TrashIcon size={13} />
+            </span>
           </Button>
           {mode === "edit" && (
             <div className="footer-spacer">

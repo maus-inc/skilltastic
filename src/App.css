@@ -231,6 +231,25 @@ body,
   opacity: 0.75;
 }
 
+/* tool-tab mark cross-morph: grid glyph at rest, the tool's own model
+   mark springs in on hover — both states stack in one cell so the tab
+   never shifts while morphing */
+.tab-mark {
+  display: inline-grid;
+  place-items: center;
+}
+
+.tab-mark-slot {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-mark-img {
+  display: block;
+}
+
 .tb-tab-label {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1505,37 +1524,42 @@ body,
 
 /* morphing button: text at rest, condenses to a plus on hover */
 
+/* btn-morph — label⇄icon morph with a STABLE footprint: both states stack
+   in the same grid cell, so the button never changes size while morphing.
+   The label fades/scales in place while the icon rotates in centered —
+   same vocabulary as the title-bar plus. */
 .btn-morph {
-  position: relative;
-  overflow: hidden;
+  display: inline-grid;
+  align-items: center;
+  justify-items: center;
+}
+
+.btn-morph-label,
+.btn-morph-icon {
+  grid-area: 1 / 1;
 }
 
 .btn-morph-label {
-  display: block;
-  max-width: 80px;
   white-space: nowrap;
-  overflow: hidden;
-  transition: max-width 220ms var(--ease-out), opacity 150ms var(--ease-out);
+  transition: opacity 150ms var(--ease-out), transform 220ms var(--ease-out);
 }
 
-.btn-morph-plus {
-  position: absolute;
-  inset: 0;
+.btn-morph-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transform: rotate(-90deg) scale(0.7);
+  transform: rotate(-90deg) scale(0.6);
   transition: opacity 150ms var(--ease-out), transform 220ms var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .btn-morph:hover .btn-morph-label {
-    max-width: 14px; /* narrows toward square while staying tappable */
     opacity: 0;
+    transform: scale(0.85);
   }
 
-  .btn-morph:hover .btn-morph-plus {
+  .btn-morph:hover .btn-morph-icon {
     opacity: 1;
     transform: rotate(0deg) scale(1);
   }
@@ -1543,8 +1567,12 @@ body,
 
 @media (prefers-reduced-motion: reduce) {
   .btn-morph-label,
-  .btn-morph-plus {
+  .btn-morph-icon {
     transition: opacity 150ms var(--ease-out);
+  }
+  .btn-morph:hover .btn-morph-label,
+  .btn-morph:hover .btn-morph-icon {
+    transform: none;
   }
 }
 
