@@ -36,3 +36,22 @@ export function selectVisibleProjects(
 
   return { visible, hiddenCount: projects.length - visible.length };
 }
+
+/**
+ * Applies a user-dragged manual order: items whose id appears in
+ * `orderIds` sort by that position; unknown items keep their relative
+ * order after the known ones. Stable, pure.
+ */
+export function applyManualOrder<T>(
+  items: T[],
+  orderIds: string[],
+  getId: (item: T) => string,
+): T[] {
+  if (orderIds.length === 0) return items;
+  const rank = new Map(orderIds.map((id, i) => [id, i]));
+  return [...items].sort((a, b) => {
+    const ra = rank.get(getId(a)) ?? Number.MAX_SAFE_INTEGER;
+    const rb = rank.get(getId(b)) ?? Number.MAX_SAFE_INTEGER;
+    return ra - rb;
+  });
+}

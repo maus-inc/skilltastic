@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion, Reorder } from "motion/react";
 import { getVersion } from "@tauri-apps/api/app";
 import { IN_TAURI } from "../../api/runtime";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { orderToolsByPin, selectVisibleProjects } from "../../utils/sidebarLists";
-import { PinIcon } from "../ui/icons";
+import { applyManualOrder, orderToolsByPin, selectVisibleProjects } from "../../utils/sidebarLists";
+import { useManualOrder } from "../../hooks/useManualOrder";
+import { GridIcon, ListIcon, PinIcon } from "../ui/icons";
 import { provider } from "../ui/providers";
 import type { ProjectInfo, ToolEntry, View } from "../../types";
 
@@ -22,6 +24,8 @@ function link(url: string) {
 
 interface SidebarProps {
   toolEntries: ToolEntry[];
+  viewMode: "list" | "cards";
+  onViewModeChange: (mode: "list" | "cards") => void;
   totalSkillCount: number;
   countForEntry: (entry: ToolEntry) => number;
   pinnedTools: Set<string>;
@@ -54,6 +58,8 @@ const BRAND_ASCII = `███████╗██╗  ██╗██╗██
 
 export function Sidebar({
   toolEntries,
+  viewMode,
+  onViewModeChange,
   totalSkillCount,
   countForEntry,
   pinnedTools,
@@ -77,15 +83,34 @@ export function Sidebar({
     getVersion().then(setVersion).catch(console.error);
   }, []);
 
-  const sortedTools = orderToolsByPin(toolEntries, pinnedTools);
+  const [toolOrder, setToolOrder] = useManualOrder("skilltastic:tool-order");
+  const [projectOrder, setProjectOrder] = useManualOrder("skilltastic:project-order");
+
+  // manual order first, then pins float (stable) — drag order survives
+  // inside each pin group
+  const sortedTools = orderToolsByPin(
+    applyManualOrder(toolEntries, toolOrder, (t) => t.id),
+    pinnedTools,
+  );
   const visibleTools = toolsExpanded ? sortedTools : sortedTools.slice(0, PREVIEW_COUNT);
   const hiddenTools = sortedTools.length - visibleTools.length;
 
-  const { visible: visibleProjects, hiddenCount: hiddenProjects } = selectVisibleProjects(
+  const { visible: selectedProjects, hiddenCount: hiddenProjects } = selectVisibleProjects(
     projects,
     MOST_USED_COUNT,
     MIN_PROJECT_ROWS,
   );
+  const visibleProjects = applyManualOrder(selectedProjects, projectOrder, (p) => p.path);
+
+  // swallow the click that follows a drag so dropping never navigates
+  const dragging = useRef(false);
+  const dragGuard = {
+    onDragStart: () => (dragging.current = true),
+    onDragEnd: () => setTimeout(() => (dragging.current = false), 0),
+  };
+  const guardedClick = (fn: () => void) => () => {
+    if (!dragging.current) fn();
+  };
 
   return (
     <aside className="sidebar">
@@ -99,20 +124,60 @@ export function Sidebar({
       </div>
 
       <div
-        className={`nav-item ${view.kind === "global" && activeToolId === ALL ? "active" : ""}`}
+        className={`nav-item nav-item--stacked ${view.kind === "global" && activeToolId === ALL ? "active" : ""}`}
         onClick={onSelectAll}
       >
-        <span>all skills</span>
-        <span className="count">{totalSkillCount}</span>
+        <div className="nav-item-row">
+          <span>all skills</span>
+          <span className="count">{totalSkillCount}</span>
+        </div>
+        <div className="view-seg" onClick={(e) => e.stopPropagation()} role="radiogroup" aria-label="presentation">
+          {(
+            [
+              { id: "list" as const, icon: <ListIcon size={12} />, label: "list view" },
+              { id: "cards" as const, icon: <GridIcon size={12} />, label: "card view" },
+            ]
+          ).map((seg) => (
+            <button
+              key={seg.id}
+              role="radio"
+              aria-checked={viewMode === seg.id}
+              className={`view-seg-btn ${viewMode === seg.id ? "active" : ""}`}
+              onClick={() => onViewModeChange(seg.id)}
+              title={seg.label}
+            >
+              {viewMode === seg.id && (
+                <motion.span
+                  className="view-seg-thumb"
+                  layoutId="view-seg-thumb"
+                  transition={{ type: "spring", stiffness: 620, damping: 38, mass: 0.7 }}
+                />
+              )}
+              <span className="view-seg-icon">{seg.icon}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
+      <Reorder.Group
+        as="div"
+        axis="y"
+        values={visibleTools.map((t) => t.id)}
+        onReorder={(ids: string[]) =>
+          setToolOrder([...ids, ...sortedTools.map((t) => t.id).filter((id) => !ids.includes(id))])
+        }
+      >
       {visibleTools.map((entry) => {
         const anyDirExists = entry.folders.some((f) => f.dirExists);
         return (
-          <div
+          <Reorder.Item
+            as="div"
+            value={entry.id}
             key={entry.id}
+            layout
+            {...dragGuard}
             className={`nav-item ${view.kind === "global" && activeToolId === entry.id ? "active" : ""}`}
-            onClick={() => onSelectTool(entry.id)}
+            onClick={guardedClick(() => onSelectTool(entry.id))}
             title={entry.folders.map((f) => f.dir).join("\n")}
           >
             <span className={`nav-label ${anyDirExists ? "" : "dir-missing"}`}>
@@ -132,13 +197,14 @@ export function Sidebar({
                 }}
                 title={pinnedTools.has(entry.id) ? "unpin" : "pin"}
               >
-                <PinIcon />
+                <PinIcon filled={pinnedTools.has(entry.id)} />
               </button>
               <span className="count">{countForEntry(entry)}</span>
             </span>
-          </div>
+          </Reorder.Item>
         );
       })}
+      </Reorder.Group>
 
       {hiddenTools > 0 && (
         <div className="nav-item expand" onClick={() => setToolsExpanded(true)}>
@@ -153,11 +219,21 @@ export function Sidebar({
 
       <div className="nav-section-label">projects</div>
 
+      <Reorder.Group
+        as="div"
+        axis="y"
+        values={visibleProjects.map((p) => p.path)}
+        onReorder={setProjectOrder}
+      >
       {visibleProjects.map((p) => (
-        <div
+        <Reorder.Item
+          as="div"
+          value={p.path}
           key={p.path}
+          layout
+          {...dragGuard}
           className={`nav-item ${view.kind === "project" && view.project.path === p.path ? "active" : ""}`}
-          onClick={() => onOpenProject(p)}
+          onClick={guardedClick(() => onOpenProject(p))}
           title={p.path}
         >
           <span>{p.name}</span>
@@ -173,11 +249,12 @@ export function Sidebar({
               }}
               title={p.pinned ? "unpin" : "pin"}
             >
-              <PinIcon />
+              <PinIcon filled={p.pinned} />
             </button>
           </span>
-        </div>
+        </Reorder.Item>
       ))}
+      </Reorder.Group>
 
       {hiddenProjects > 0 && (
         <div className="nav-item expand" onClick={onShowAllProjects}>
