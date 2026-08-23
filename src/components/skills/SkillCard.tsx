@@ -1,3 +1,4 @@
+import { Switch } from "../ui/Switch";
 import type { Skill, ToolEntry } from "../../types";
 
 interface SkillCardProps {
@@ -13,16 +14,12 @@ export function SkillCard({ skill, toolEntries, onToggle, onOpen }: SkillCardPro
 
   return (
     <div className={`skill-card ${skill.enabled ? "" : "disabled"}`} onClick={() => onOpen(skill)}>
-      <div
-        className={`toggle ${skill.enabled ? "on" : ""}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle(skill);
-        }}
+      <Switch
+        checked={skill.enabled}
+        onCheckedChange={() => onToggle(skill)}
+        aria-label={`${skill.enabled ? "disable" : "enable"} ${skill.name}`}
         title={skill.enabled ? "disable" : "enable"}
-      >
-        <div className="knob" />
-      </div>
+      />
 
       <div className="skill-main">
         <div className="skill-name-row">
