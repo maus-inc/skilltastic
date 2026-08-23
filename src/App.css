@@ -722,43 +722,6 @@ body,
   word-break: break-all;
 }
 
-.icon-btn {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-family: inherit;
-  flex-shrink: 0;
-  cursor: pointer;
-}
-
-.icon-btn:hover {
-  color: var(--text);
-  border-color: var(--border-strong);
-}
-
-.icon-btn.danger:hover {
-  color: var(--danger-bright);
-  border-color: var(--danger);
-}
-
-.icon-btn.square {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-}
-
-.icon-btn.square.active {
-  color: var(--text);
-  background: var(--bg-elevated);
-  border-color: var(--border-strong);
-}
-
 /* square switch — port of watermelon.sh switch-2 (shadcn switch, rounded-xs) */
 
 .switch {
@@ -810,6 +773,153 @@ body,
 
 .switch[data-state="checked"]:hover:not(:disabled) .switch-thumb {
   background: #000;
+}
+
+/* ---------- button system (watermelon ui port — docs/kb/09) ---------- */
+
+.wm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  flex-shrink: 0;
+  outline: none;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s;
+}
+
+.wm-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.wm-btn:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.wm-btn:focus-visible {
+  box-shadow: 0 0 0 1px var(--bg), 0 0 0 3px rgba(255, 255, 255, 0.35);
+}
+
+.wm-btn[aria-invalid="true"] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+}
+
+/* variants */
+
+.wm-btn--default {
+  background: var(--accent);
+  color: #000;
+}
+
+.wm-btn--default:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.wm-btn--destructive {
+  background: rgba(239, 68, 68, 0.6);
+  color: #fff;
+}
+
+.wm-btn--destructive:hover {
+  background: rgba(239, 68, 68, 0.75);
+}
+
+.wm-btn--destructive:focus-visible {
+  box-shadow: 0 0 0 1px var(--bg), 0 0 0 3px rgba(239, 68, 68, 0.4);
+}
+
+.wm-btn--outline {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+}
+
+.wm-btn--outline:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-strong);
+}
+
+.wm-btn--secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+}
+
+.wm-btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.wm-btn--ghost {
+  background: transparent;
+  color: var(--text-dim);
+}
+
+.wm-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.wm-btn--link {
+  background: transparent;
+  color: var(--text);
+  text-underline-offset: 4px;
+}
+
+.wm-btn--link:hover {
+  text-decoration: underline;
+}
+
+/* sizes (compact-scaled from the source's 32/36/40) */
+
+.wm-btn--size-sm {
+  height: 24px;
+  padding: 0 10px;
+  gap: 5px;
+  font-size: 11.5px;
+}
+
+.wm-btn--size-default {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.wm-btn--size-lg {
+  height: 32px;
+  padding: 0 16px;
+  font-size: 12.5px;
+}
+
+.wm-btn--size-icon,
+.wm-btn--size-icon-sm,
+.wm-btn--size-icon-lg {
+  padding: 0;
+}
+
+.wm-btn--size-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.wm-btn--size-icon-sm {
+  width: 24px;
+  height: 24px;
+}
+
+.wm-btn--size-icon-lg {
+  width: 32px;
+  height: 32px;
 }
 
 /* ---------- editor modal ---------- */
@@ -964,44 +1074,6 @@ body,
 .modal-footer .footer-spacer {
   display: flex;
   gap: 8px;
-}
-
-.btn {
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 500;
-  padding: 4px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.btn:hover {
-  border-color: var(--border-strong);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 2px 6px rgba(0, 0, 0, 0.4);
-}
-
-.btn.danger {
-  border-color: rgba(239, 68, 68, 0.4);
-  color: var(--danger-bright);
-}
-
-.btn.danger:hover {
-  border-color: var(--border-strong);
-}
-
-.btn.primary {
-  background: #fff;
-  border-color: #fff;
-  color: #000;
-}
-
-.btn.primary:hover {
-  background: #e5e5e5;
 }
 
 /* ---------- "seen by" chips on skill cards ---------- */

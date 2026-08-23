@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "../ui/Button";
 import { api } from "../../api";
 import { CloseIcon } from "../ui/icons";
 import { ModalShell } from "../ui/ModalShell";
@@ -89,9 +90,9 @@ export function CreateSkillModal({
     <ModalShell className="create-modal" onClose={onClose}>
         <div className="modal-header">
           <span className="title">new skill</span>
-          <button className="icon-btn square" onClick={onClose} title="close">
+          <Button variant="ghost" size="icon-sm" onClick={onClose} title="close" aria-label="close">
             <CloseIcon />
-          </button>
+          </Button>
         </div>
 
         <div className="create-form">
@@ -175,9 +176,9 @@ export function CreateSkillModal({
           <div className="footer-spacer" />
           {/* Stay clickable when input is incomplete: clicking explains what's
               missing instead of doing nothing. Only in-flight submits block. */}
-          <button className="btn" onClick={submit} disabled={submitting}>
+          <Button variant="default" size="sm" onClick={submit} disabled={submitting}>
             {submitting ? "creating…" : "create & edit"}
-          </button>
+          </Button>
         </div>
     </ModalShell>
   );

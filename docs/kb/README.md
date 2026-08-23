@@ -13,6 +13,7 @@ Read `01-overview.md` first; everything else is topic-scoped and standalone.
 | [06-build-and-release.md](06-build-and-release.md) | Dev commands, required checks, the (manual) release process |
 | [07-conventions.md](07-conventions.md) | Commit/PR style, code conventions, review bars |
 | [08-improvement-backlog.md](08-improvement-backlog.md) | Roadmap and candidate improvements, with context |
+| [09-button-system.md](09-button-system.md) | The button system: variants, sizes, states, usage mapping |
 
 ## Fact sheet
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Button } from "../ui/Button";
 import { api } from "../../api";
 import { CloseIcon } from "../ui/icons";
 import { ModalShell } from "../ui/ModalShell";
@@ -49,9 +50,9 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
     <ModalShell onClose={onClose}>
         <div className="modal-header">
           <span className="title">{skill.name} / SKILL.md</span>
-          <button className="icon-btn square" onClick={onClose} title="close">
+          <Button variant="ghost" size="icon-sm" onClick={onClose} title="close" aria-label="close">
             <CloseIcon />
-          </button>
+          </Button>
         </div>
 
         {mode === "view" && (
@@ -96,23 +97,24 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
         )}
 
         <div className="modal-footer">
-          <button
-            className={`btn ${mode === "edit" ? "active" : ""}`}
+          <Button
+            variant={mode === "edit" ? "secondary" : "outline"}
+            size="sm"
             onClick={() => setMode(mode === "edit" ? "view" : "edit")}
           >
             {mode === "edit" ? "view" : "edit"}
-          </button>
-          <button className="btn danger" onClick={remove}>
+          </Button>
+          <Button variant="destructive" size="sm" onClick={remove}>
             delete
-          </button>
+          </Button>
           {mode === "edit" && (
             <div className="footer-spacer">
-              <button className="btn" onClick={() => setMode("view")}>
+              <Button variant="ghost" size="sm" onClick={() => setMode("view")}>
                 cancel
-              </button>
-              <button className="btn primary" onClick={save} disabled={loading || saving}>
+              </Button>
+              <Button variant="default" size="sm" onClick={save} disabled={loading || saving}>
                 {saving ? "saving..." : "save"}
-              </button>
+              </Button>
             </div>
           )}
         </div>

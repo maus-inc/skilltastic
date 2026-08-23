@@ -1,4 +1,5 @@
 import type { ToolFolderInfo } from "../../types";
+import { Button } from "../ui/Button";
 
 interface TopbarProps {
   title: string;
@@ -34,9 +35,9 @@ export function Topbar({ title, subtitle, folders, query, onQueryChange, onForge
       </div>
       <div className="topbar-actions">
         {onNewSkill && (
-          <button className="btn" onClick={onNewSkill} title="create a new skill from a minimal template">
+          <Button variant="default" size="sm" onClick={onNewSkill} title="create a new skill from a minimal template">
             new skill
-          </button>
+          </Button>
         )}
         <input
           className="search"
@@ -45,9 +46,9 @@ export function Topbar({ title, subtitle, folders, query, onQueryChange, onForge
           onChange={(e) => onQueryChange(e.target.value)}
         />
         {onForgetProject && (
-          <button className="icon-btn danger" onClick={onForgetProject}>
+          <Button variant="destructive" size="sm" onClick={onForgetProject}>
             forget project
-          </button>
+          </Button>
         )}
       </div>
     </div>
