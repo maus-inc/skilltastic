@@ -1,11 +1,12 @@
-use super::{home_dir, AgentTool, SkillAdapter};
+use super::{config_dir, AgentTool, SkillAdapter};
 use std::path::PathBuf;
 
 /// OpenCode skills. Verified against OpenCode's docs (opencode.ai/docs/skills):
 /// project skills in `.opencode/skills`, global skills in
-/// `~/.config/opencode/skills`. OpenCode also reads `.claude/skills` and
-/// the shared `.agents/skills` convention, but those are already covered
-/// by the Claude and Codex adapters respectively.
+/// `~/.config/opencode/skills` (with `$XDG_CONFIG_HOME` honored where set).
+/// OpenCode also reads `.claude/skills` and the shared `.agents/skills`
+/// convention, but those are already covered by the Claude and Codex
+/// adapters respectively.
 pub struct OpenCodeAdapter;
 
 impl SkillAdapter for OpenCodeAdapter {
@@ -14,7 +15,7 @@ impl SkillAdapter for OpenCodeAdapter {
     }
 
     fn skills_dir(&self) -> PathBuf {
-        home_dir().join(".config").join("opencode").join("skills")
+        config_dir().join("opencode").join("skills")
     }
 
     fn project_subpath(&self) -> &'static str {

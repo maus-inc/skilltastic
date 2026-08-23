@@ -68,54 +68,85 @@ fn skills_roots(tracked: &[ProjectInfo]) -> Vec<PathBuf> {
 ///   Sharing a skill across tools via a link stays allowed because every
 ///   tool's folder is a root, so a Cursor link into `~/.claude/skills`
 ///   still resolves home.
-fn validate_manifest_at(path: &Path, roots: &[PathBuf]) -> bool {
+/// Shape + resolution check, returning the CANONICAL manifest snapshot.
+/// Callers must perform their filesystem operation on that resolved path,
+/// never on the raw webview-supplied string — that closes the window
+/// where a symlink could be swapped between validation and use.
+fn resolve_manifest_in_roots(path: &Path, roots: &[PathBuf]) -> Option<PathBuf> {
     if path.file_name() != Some(OsStr::new(MANIFEST_FILE)) {
-        return false;
+        return None;
     }
     let Some(skill_dir) = path.parent() else {
-        return false;
+        return None;
     };
     // `<root>/SKILL.md` and `<root>/.disabled/SKILL.md` name no skill
     if skill_dir.file_name().is_none_or(|n| n == DISABLED_DIR) {
-        return false;
+        return None;
     }
     if !roots.iter().any(|root| skill_dir.starts_with(root)) {
-        return false;
+        return None;
     }
     let Ok(resolved) = fs::canonicalize(path) else {
-        return false;
+        return None;
     };
     let resolved_roots: Vec<PathBuf> = roots
         .iter()
         .filter_map(|r| fs::canonicalize(r).ok())
         .collect();
-    resolved_roots.iter().any(|root| resolved.starts_with(root))
+    resolved_roots
+        .iter()
+        .any(|root| resolved.starts_with(root))
+        .then_some(resolved)
 }
 
-fn manifest_is_manageable(app: &AppHandle, path: &Path) -> bool {
+#[cfg(test)]
+fn validate_manifest_at(path: &Path, roots: &[PathBuf]) -> bool {
+    resolve_manifest_in_roots(path, roots).is_some()
+}
+
+/// Validates a webview-supplied manifest id and hands back the canonical
+/// snapshot to operate on (see `resolve_manifest_in_roots`).
+fn manageable_manifest(app: &AppHandle, path: &Path) -> Result<PathBuf, String> {
     let tracked = crate::projects::list(app).unwrap_or_default();
-    validate_manifest_at(path, &skills_roots(&tracked))
+    resolve_manifest_in_roots(path, &skills_roots(&tracked))
+        .ok_or_else(|| "not a managed skill path".to_string())
 }
 
 fn find_skill_by_manifest(app: &AppHandle, manifest: &Path) -> Option<Skill> {
     let target = manifest.to_string_lossy().to_string();
+    // Discovered ids carry their on-disk (non-canonical) spelling, while
+    // callers may hold a canonical snapshot — compare both forms.
+    let resolved_target = fs::canonicalize(manifest).ok();
+    let matches = |id: &str| {
+        id == target
+            || match (&resolved_target, fs::canonicalize(id).ok()) {
+                (Some(a), Some(b)) => a == &b,
+                _ => false,
+            }
+    };
 
     let in_user_scope = crate::skills::all_adapters()
         .into_iter()
         .flat_map(|adapter| adapter.discover())
-        .find(|s| s.id == target);
+        .find(|s| matches(&s.id));
     if in_user_scope.is_some() {
         return in_user_scope;
     }
 
+    let resolved_manifest = resolved_target.unwrap_or_else(|| manifest.to_path_buf());
     crate::projects::list(app)
         .unwrap_or_default()
         .into_iter()
-        .find(|p| manifest.starts_with(&p.path))
+        .find(|p| {
+            manifest.starts_with(&p.path)
+                || fs::canonicalize(&p.path)
+                    .map(|cp| resolved_manifest.starts_with(cp))
+                    .unwrap_or(false)
+        })
         .and_then(|p| {
             crate::skills::discover_project_skills(Path::new(&p.path))
                 .into_iter()
-                .find(|s| s.id == target)
+                .find(|s| matches(&s.id))
         })
 }
 

@@ -89,10 +89,8 @@ pub fn list(app: &AppHandle) -> Result<Vec<ProjectInfo>, String> {
 }
 
 pub fn add(app: &AppHandle, path: String) -> Result<ProjectInfo, String> {
-    let root = Path::new(&path);
-    if !root.is_dir() {
-        return Err(format!("{} is not a directory", path));
-    }
+    let root = normalize_project_path(&path)?;
+    let path = root.to_string_lossy().to_string();
     let mut projects = load(app)?;
     if let Some(existing) = projects.iter().find(|p| p.path == path) {
         return Ok(existing.clone());
@@ -113,6 +111,25 @@ pub fn add(app: &AppHandle, path: String) -> Result<ProjectInfo, String> {
     projects.push(info.clone());
     save(app, &projects)?;
     Ok(info)
+}
+
+/// A tracked project becomes a set of managed skills roots, so the
+/// webview-supplied path is normalized before enrollment: it must exist
+/// and resolve (symlinks followed) to a real directory. Storing the
+/// canonical form keeps later validators and scanners comparing the same
+/// shape, and aliases/relative paths can't double-enroll a folder.
+fn normalize_project_path(raw: &str) -> Result<PathBuf, String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err("project path is empty".into());
+    }
+    let canonical = Path::new(trimmed)
+        .canonicalize()
+        .map_err(|_| format!("{} does not exist or cannot be resolved", trimmed))?;
+    if !canonical.is_dir() {
+        return Err(format!("{} is not a directory", trimmed));
+    }
+    Ok(canonical)
 }
 
 pub fn remove(app: &AppHandle, path: &str) -> Result<(), String> {
@@ -178,7 +195,7 @@ pub fn clear_skill_count(app: &AppHandle, path: &str) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::ProjectInfo;
+    use super::{normalize_project_path, ProjectInfo};
 
     #[test]
     fn older_project_records_start_with_an_unknown_skill_count() {
@@ -194,5 +211,23 @@ mod tests {
         .unwrap();
 
         assert_eq!(project.skill_count, None);
+    }
+
+    #[test]
+    fn normalizing_a_project_path_rejects_garbage() {
+        assert!(normalize_project_path("").is_err());
+        assert!(normalize_project_path("   ").is_err());
+        // nonexistent paths never become managed roots
+        assert!(normalize_project_path("/definitely/not/a/real/folder/skilltastic").is_err());
+    }
+
+    #[test]
+    fn normalizing_a_project_path_canonicalizes_real_dirs() {
+        let dir = std::env::temp_dir().join(format!("skilltastic-proj-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let canonical = normalize_project_path(dir.to_str().unwrap()).unwrap();
+        assert_eq!(canonical, dir.canonicalize().unwrap());
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }
