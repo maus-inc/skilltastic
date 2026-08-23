@@ -1,4 +1,6 @@
 import { motion } from "motion/react";
+import { Badge } from "../ui/Badge";
+import { provider } from "../ui/providers";
 import { Switch } from "../ui/Switch";
 import type { Skill, ToolEntry } from "../../types";
 
@@ -34,8 +36,10 @@ export function SkillCard({ skill, toolEntries, onToggle, onOpen }: SkillCardPro
       <div className="skill-main">
         <div className="skill-name-row">
           <span className="skill-name">{skill.name}</span>
-          <span className="tool-tag">{skill.tool}</span>
-          <span className="scope-tag">{skill.scope}</span>
+          <Badge icon={provider(skill.tool).icon} iconAlt={provider(skill.tool).label}>
+            {provider(skill.tool).label}
+          </Badge>
+          <Badge>{skill.scope}</Badge>
         </div>
         {skill.description && <div className="skill-desc">{skill.description}</div>}
         <div className="skill-path">{skill.path}</div>
