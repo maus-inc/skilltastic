@@ -38,7 +38,9 @@ export function Switch({
   };
 
   return (
-    <button
+    <motion.button
+      whileTap={{ transform: "scale(0.93)" }}
+      transition={{ type: "spring", stiffness: 700, damping: 30 }}
       type="button"
       role="switch"
       aria-checked={checked}
@@ -53,9 +55,9 @@ export function Switch({
       <motion.span
         className="switch-thumb"
         initial={false}
-        animate={{ x: checked ? 14 : 0 }}
+        animate={{ transform: checked ? "translateX(14px)" : "translateX(0px)" }}
         transition={{ type: "spring", stiffness: 700, damping: 32 }}
       />
-    </button>
+    </motion.button>
   );
 }

@@ -7,22 +7,18 @@ import { HOME_TAB_ID, projectTabId, toolTabId, type TitleTab } from "../../types
 import { CommandMenu, type CommandEntry } from "../ui/CommandMenu";
 import {
   ArrowUpRightIcon,
-  ChevronDownIcon,
-  FlaskIcon,
   CloseIcon,
   FolderIcon,
   FolderPlusIcon,
   GithubIcon,
-  GridIcon,
   HomeIcon,
   ListIcon,
-  MaximizeIcon,
   MinimizeIcon,
   MoreIcon,
   PagePlusIcon,
   PlusIcon,
-  RestoreIcon,
 } from "../ui/icons";
+import { MorphChevron, MorphGridFlask, MorphMaxRestore } from "../ui/morphs";
 
 const REPO_URL = "https://github.com/maus-inc/skilltastic";
 
@@ -59,6 +55,7 @@ export function TitleBar({
   onOpenProject,
 }: TitleBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [maximized, setMaximized] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -159,7 +156,7 @@ export function TitleBar({
       <button
         className={`tb-home ${activeTabId === HOME_TAB_ID ? "active" : ""}`}
         onClick={() => onActivateTab(HOME_TAB_ID)}
-        title="all skills"
+        data-tip="all skills"
       >
         <HomeIcon size={16} />
       </button>
@@ -177,6 +174,8 @@ export function TitleBar({
             transition={{ type: "spring", stiffness: 520, damping: 38, mass: 0.7 }}
             className={`tb-tab ${tab.id === activeTabId ? "active" : ""}`}
             onClick={() => onActivateTab(tab.id)}
+            onMouseEnter={() => setHoveredTab(tab.id)}
+            onMouseLeave={() => setHoveredTab((h) => (h === tab.id ? null : h))}
             onAuxClick={(e) => {
               if (e.button === 1) onCloseTab(tab.id); // middle-click closes
             }}
@@ -186,14 +185,7 @@ export function TitleBar({
               {tab.kind === "project" ? (
                 <FolderIcon size={12} />
               ) : (
-                <span className="tb-icon-swap">
-                  <span className="tb-icon-rest">
-                    <GridIcon size={12} />
-                  </span>
-                  <span className="tb-icon-hover">
-                    <FlaskIcon size={12} />
-                  </span>
-                </span>
+                <MorphGridFlask hover={hoveredTab === tab.id} />
               )}
             </span>
             <span className="tb-tab-label">{tab.label}</span>
@@ -211,7 +203,7 @@ export function TitleBar({
         ))}
         </AnimatePresence>
 
-        <button className="tb-plus" onClick={onNewSkill} title="new skill">
+        <button className="tb-plus" onClick={onNewSkill} data-tip="new skill">
           <PlusIcon size={16} />
         </button>
       </div>
@@ -224,16 +216,11 @@ export function TitleBar({
         <button
           className={`tb-menu-btn ${menuOpen ? "open" : ""}`}
           onClick={() => setMenuOpen((o) => !o)}
-          title="menu"
+          data-tip="menu"
         >
-          <motion.span
-            className="tb-menu-icon"
-            initial={false}
-            animate={{ transform: menuOpen ? "rotate(180deg)" : "rotate(0deg)" }}
-            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-          >
-            {IS_MAC ? <MoreIcon size={16} /> : <ChevronDownIcon size={14} />}
-          </motion.span>
+          <span className="tb-menu-icon">
+            {IS_MAC ? <MoreIcon size={16} /> : <MorphChevron open={menuOpen} />}
+          </span>
         </button>
         <AnimatePresence>
         {menuOpen && (
@@ -250,13 +237,13 @@ export function TitleBar({
       {/* window controls — Windows/Linux only; macOS has traffic lights */}
       {!IS_MAC && (
         <div className="tb-controls">
-          <button className="tb-ctl" onClick={winCtl("minimize")} title="minimize">
+          <button className="tb-ctl" onClick={winCtl("minimize")} data-tip="minimize" aria-label="minimize">
             <MinimizeIcon size={16} />
           </button>
-          <button className="tb-ctl" onClick={winCtl("toggleMaximize")} title={maximized ? "restore" : "maximize"}>
-            {maximized ? <RestoreIcon size={14} /> : <MaximizeIcon size={12} />}
+          <button className="tb-ctl" onClick={winCtl("toggleMaximize")} data-tip={maximized ? "restore" : "maximize"} aria-label={maximized ? "restore" : "maximize"}>
+            <MorphMaxRestore maximized={maximized} />
           </button>
-          <button className="tb-ctl tb-ctl-close" onClick={winCtl("close")} title="close">
+          <button className="tb-ctl tb-ctl-close" onClick={winCtl("close")} data-tip="close" aria-label="close">
             <CloseIcon size={16} />
           </button>
         </div>

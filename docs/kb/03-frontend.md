@@ -84,6 +84,20 @@ src/
 - **Layout:** Figma-UI3-style floating panels — the sidebar and main
   content are rounded (12px), bordered, translucent panels floating on
   an 8px-gapped black canvas under the title bar.
+- **Morphing icons:** `morphicons` (spring path-morphing, zero deps)
+  drives every reactive icon that transforms between two shapes —
+  configured wrappers live in `ui/morphs.tsx` (chevron open/close,
+  grid↔flask on tool tabs, maximize↔restore). Icon data comes from
+  the `iconoir` package as `?raw` svg parsed ONCE at module scope
+  (plan-cache requirement). Binary state swaps (pin fill) stay keyed
+  re-mounts; morphs are for shape-to-shape transitions.
+- **Tooltips:** `[data-tip]` / `[data-tip-side="top"]` css tooltips
+  (350ms intent delay) replace native `title` on window chrome, pins
+  and the scope chip. Prefer them over `title` on interactive chrome.
+- **Perf contract (60fps):** backdrop blur only on floating layers
+  (popover/modals, 14px) — never the full-height panels; every motion
+  transform uses full `transform` strings (GPU-composited), never
+  x/y/scale shorthands.
 - **Motion:** the `motion` package (Framer) via `motion/react`.
   Transform ownership is exclusive: if motion animates an element, CSS
   must not transition its transform. `MotionConfig reducedMotion="user"`
