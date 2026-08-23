@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./runtime";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { DetectedProject, ProjectInfo, Skill } from "../types";
 

@@ -17,6 +17,9 @@ export default defineConfig(async () => ({
     port: 1420,
     strictPort: true,
     host: host || false,
+    // dev-only: lets the dev server answer when proxied under a preview
+    // host (e.g. a sandbox/remote-dev URL); irrelevant to production builds
+    allowedHosts: true,
     hmr: host
       ? {
           protocol: "ws",

@@ -5,13 +5,15 @@ import { EditorModal } from "./components/modals/EditorModal";
 import { ProjectsModal } from "./components/modals/ProjectsModal";
 import { Sidebar } from "./components/layout/Sidebar";
 import { SkillList } from "./components/skills/SkillList";
+import { TitleBar } from "./components/layout/TitleBar";
 import { Topbar } from "./components/layout/Topbar";
 import { useGlobalSkills } from "./hooks/useGlobalSkills";
 import { usePinnedTools } from "./hooks/usePinnedTools";
 import { useProjects } from "./hooks/useProjects";
 import { useProjectSkills } from "./hooks/useProjectSkills";
 import { filterSkills } from "./utils/filterSkills";
-import type { AgentTool, ProjectInfo, Skill, ToolEntry, View } from "./types";
+import { HOME_TAB_ID, projectTabId, toolTabId } from "./types";
+import type { AgentTool, ProjectInfo, Skill, TitleTab, ToolEntry, View } from "./types";
 import "./App.css";
 
 const ALL = "all" as const;
@@ -19,6 +21,7 @@ const ALL = "all" as const;
 function App() {
   const [view, setView] = useState<View>({ kind: "global" });
   const [activeToolId, setActiveToolId] = useState<string | typeof ALL>(ALL);
+  const [tabs, setTabs] = useState<TitleTab[]>([]);
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Skill | null>(null);
   const [addingProject, setAddingProject] = useState(false);
@@ -37,9 +40,21 @@ function App() {
       ? null
       : global.toolEntries.find((t) => t.id === activeToolId) ?? null;
 
+  /** Which title-bar tab mirrors the current view. */
+  const activeTabId =
+    view.kind === "project"
+      ? projectTabId(view.project.path)
+      : activeToolId === ALL
+        ? HOME_TAB_ID
+        : toolTabId(activeToolId);
+
   useEffect(() => {
     skillListRef.current?.scrollTo(0, 0);
   }, [view, activeToolId]);
+
+  function ensureTab(tab: TitleTab) {
+    setTabs((prev) => (prev.some((t) => t.id === tab.id) ? prev : [...prev, tab]));
+  }
 
   function selectAll() {
     setView({ kind: "global" });
@@ -47,13 +62,47 @@ function App() {
   }
 
   function selectTool(toolId: string) {
+    const entry = global.toolEntries.find((t) => t.id === toolId);
+    ensureTab({ id: toolTabId(toolId), kind: "tool", toolId, label: entry?.label ?? toolId });
     setView({ kind: "global" });
     setActiveToolId(toolId);
   }
 
   function openProject(project: ProjectInfo) {
+    ensureTab({ id: projectTabId(project.path), kind: "project", project, label: project.name });
     setView({ kind: "project", project });
     projects.touch(project); // records the open for latest-first ordering
+  }
+
+  /** Title-bar tab clicks route back through the normal view switches. */
+  function activateTab(id: string) {
+    if (id === HOME_TAB_ID) return selectAll();
+    const tab = tabs.find((t) => t.id === id);
+    if (!tab) return;
+    if (tab.kind === "tool") {
+      setView({ kind: "global" });
+      setActiveToolId(tab.toolId);
+    } else {
+      setView({ kind: "project", project: tab.project });
+      projects.touch(tab.project);
+    }
+  }
+
+  /** Closing the active tab falls back to its left neighbour, then home. */
+  function closeTab(id: string) {
+    const index = tabs.findIndex((t) => t.id === id);
+    if (index === -1) return;
+    const remaining = tabs.filter((t) => t.id !== id);
+    setTabs(remaining);
+    if (id !== activeTabId) return;
+    const neighbour = remaining[index - 1] ?? remaining[index] ?? null;
+    if (!neighbour) return selectAll();
+    if (neighbour.kind === "tool") {
+      setView({ kind: "global" });
+      setActiveToolId(neighbour.toolId);
+    } else {
+      setView({ kind: "project", project: neighbour.project });
+    }
   }
 
   async function addDetectedProject(path: string) {
@@ -75,8 +124,10 @@ function App() {
 
   async function forgetProject(project: ProjectInfo) {
     await projects.forget(project);
+    setTabs((prev) => prev.filter((t) => t.id !== projectTabId(project.path)));
     if (activeProject?.path === project.path) setView({ kind: "global" });
   }
+
 
   // A tool's view is the union of every skills folder it reads — a skill
   // in the shared ~/.agents folder correctly shows under Codex, Goose,
@@ -106,7 +157,17 @@ function App() {
     view.kind === "global" ? `${filteredGlobal.length} shown` : view.project.path;
 
   return (
-    <div className="app">
+    <div className="shell">
+      <TitleBar
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onActivateTab={activateTab}
+        onCloseTab={closeTab}
+        onNewSkill={() => setCreatingSkill(true)}
+        onAddProject={() => setAddingProject(true)}
+        onShowAllProjects={() => setShowingAllProjects(true)}
+      />
+      <div className="app">
       <Sidebar
         toolEntries={global.toolEntries}
         totalSkillCount={global.skills.length}
@@ -210,6 +271,7 @@ function App() {
           onOpen={openProject}
         />
       )}
+      </div>
     </div>
   );
 }

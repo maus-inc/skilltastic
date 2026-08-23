@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
+import { IN_TAURI } from "../../api/runtime";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { orderToolsByPin, selectVisibleProjects } from "../../utils/sidebarLists";
 import { PinIcon } from "../ui/icons";
@@ -58,6 +59,7 @@ export function Sidebar({
   const [toolsExpanded, setToolsExpanded] = useState(false);
 
   useEffect(() => {
+    if (!IN_TAURI) return setVersion("preview");
     getVersion().then(setVersion).catch(console.error);
   }, []);
 
@@ -76,7 +78,7 @@ export function Sidebar({
       <div className="brand">
         <img src="/skilltastic.png" alt="Skilltastic" />
         <span className="brand-name">
-          Skill <span className="accent">Manager</span>
+          Skill<span className="accent">tastic</span>
         </span>
       </div>
 
