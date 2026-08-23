@@ -131,7 +131,7 @@ export function Sidebar({
           <span>all skills</span>
           <span className="count">{totalSkillCount}</span>
         </div>
-        <div className="view-seg" onClick={(e) => e.stopPropagation()} role="radiogroup" aria-label="presentation">
+        <div className="view-seg" onClick={(e) => e.stopPropagation()} role="radiogroup" aria-label="view mode">
           {(
             [
               { id: "list" as const, icon: <ListIcon size={12} />, label: "list view" },
@@ -197,6 +197,7 @@ export function Sidebar({
                 }}
                 data-tip={pinnedTools.has(entry.id) ? "unpin" : "pin"}
                 data-tip-side="top"
+                aria-label={`${pinnedTools.has(entry.id) ? "unpin" : "pin"} ${entry.label}`}
               >
                 <motion.span
                   key={String(pinnedTools.has(entry.id))}
@@ -258,6 +259,7 @@ export function Sidebar({
               }}
               data-tip={p.pinned ? "unpin" : "pin"}
               data-tip-side="top"
+              aria-label={`${p.pinned ? "unpin" : "pin"} ${p.name}`}
             >
               <motion.span
                 key={String(p.pinned)}

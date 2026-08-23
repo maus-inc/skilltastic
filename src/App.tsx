@@ -146,6 +146,10 @@ function App() {
   }
 
 
+  // Stable identity: AddProjectModal's load effect depends on this list,
+  // so it must not be a fresh array on every render.
+  const trackedPaths = useMemo(() => projects.projects.map((p) => p.path), [projects.projects]);
+
   // A tool's view is the union of every skills folder it reads — a skill
   // in the shared ~/.agents folder correctly shows under Codex, Goose,
   // Amp, and every tool that scans it.
@@ -285,7 +289,7 @@ function App() {
 
       {addingProject && (
         <AddProjectModal
-          trackedPaths={projects.projects.map((p) => p.path)}
+          trackedPaths={trackedPaths}
           onClose={() => setAddingProject(false)}
           onAdd={addDetectedProject}
           onBrowse={browseAndAddProject}
