@@ -166,6 +166,13 @@ function App() {
         onNewSkill={() => setCreatingSkill(true)}
         onAddProject={() => setAddingProject(true)}
         onShowAllProjects={() => setShowingAllProjects(true)}
+        tools={global.toolEntries.map((t) => ({ id: t.id, label: t.label }))}
+        projects={projects.projects.map((p) => ({ path: p.path, name: p.name }))}
+        onOpenTool={selectTool}
+        onOpenProject={(path) => {
+          const project = projects.projects.find((p) => p.path === path);
+          if (project) openProject(project);
+        }}
       />
       <div className="app">
       <Sidebar

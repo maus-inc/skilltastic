@@ -255,39 +255,102 @@ body,
   color: var(--tb-text);
 }
 
-.tb-menu {
+/* command popover (watermelon combobox-1 port — opened by the arrow) */
+
+.cmd {
   position: absolute;
   top: 40px;
   right: 4px;
   z-index: 100;
-  min-width: 200px;
-  padding: 6px 0;
-  background: rgba(38, 38, 38, 0.9);
+  width: 240px;
+  background: rgba(28, 28, 28, 0.92);
   backdrop-filter: var(--blur-panel);
   -webkit-backdrop-filter: var(--blur-panel);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  border-radius: 12px;
   box-shadow: var(--shadow-float);
+  overflow: hidden;
 }
 
-.tb-menu-item {
-  display: block;
-  width: 100%;
-  padding: 6px 14px;
-  text-align: left;
-  font-size: 12.5px;
+.cmd-input-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  height: 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-faint);
+}
+
+.cmd-input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 12px;
+}
+
+.cmd-input::placeholder {
+  color: var(--text-faint);
+}
+
+.cmd-list {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 5px;
+}
+
+.cmd-empty {
+  padding: 14px 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.cmd-group + .cmd-group {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cmd-group-label {
+  padding: 4px 8px 2px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-faint);
+}
+
+.cmd-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 12px;
   color: #e6e6e6;
+  cursor: default;
 }
 
-.tb-menu-item:hover {
+.cmd-item[data-highlighted="true"] {
   background: #0d99ff;
   color: #fff;
 }
 
-.tb-menu-sep {
-  height: 1px;
-  margin: 6px 0;
-  background: rgba(255, 255, 255, 0.1);
+.cmd-item[data-checked="true"] {
+  color: #fff;
+}
+
+.cmd-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* window controls (windows/linux) */

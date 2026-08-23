@@ -1,4 +1,5 @@
 import {
+  Check,
   Folder,
   HomeSimple,
   Minus,
@@ -64,6 +65,10 @@ export function MoreIcon(props: IconProps) {
 
 export function SearchIcon(props: IconProps) {
   return <Search {...p(props)} />;
+}
+
+export function CheckIcon(props: IconProps) {
+  return <Check {...p(props)} />;
 }
 
 export function MinimizeIcon(props: IconProps) {

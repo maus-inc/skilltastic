@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { IN_TAURI } from "../../api/runtime";
-import { HOME_TAB_ID, type TitleTab } from "../../types";
+import { HOME_TAB_ID, projectTabId, toolTabId, type TitleTab } from "../../types";
+import { CommandMenu, type CommandEntry } from "../ui/CommandMenu";
 import {
   ChevronDownIcon,
   CloseIcon,
@@ -31,6 +32,11 @@ interface TitleBarProps {
   onNewSkill: () => void;
   onAddProject: () => void;
   onShowAllProjects: () => void;
+  /** Everything the dropdown can jump to. */
+  tools: { id: string; label: string }[];
+  projects: { path: string; name: string }[];
+  onOpenTool: (toolId: string) => void;
+  onOpenProject: (path: string) => void;
 }
 
 export function TitleBar({
@@ -41,6 +47,10 @@ export function TitleBar({
   onNewSkill,
   onAddProject,
   onShowAllProjects,
+  tools,
+  projects,
+  onOpenTool,
+  onOpenProject,
 }: TitleBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [maximized, setMaximized] = useState(false);
@@ -80,10 +90,31 @@ export function TitleBar({
     getCurrentWindow()[action]().catch(console.error);
   };
 
-  const menuAction = (fn: () => void) => () => {
-    setMenuOpen(false);
-    fn();
-  };
+  const menuEntries: CommandEntry[] = [
+    { id: "act:new-skill", label: "new skill…", group: "actions", action: onNewSkill },
+    { id: "act:add-project", label: "add project…", group: "actions", action: onAddProject },
+    { id: "act:all-projects", label: "all projects", group: "actions", action: onShowAllProjects },
+    {
+      id: "act:github",
+      label: "skilltastic on github",
+      group: "actions",
+      action: () => openUrl(REPO_URL).catch(console.error),
+    },
+    ...tools.map((tool) => ({
+      id: `tool:${tool.id}`,
+      label: tool.label,
+      group: "tools",
+      checked: activeTabId === toolTabId(tool.id),
+      action: () => onOpenTool(tool.id),
+    })),
+    ...projects.map((project) => ({
+      id: `project:${project.path}`,
+      label: project.name,
+      group: "projects",
+      checked: activeTabId === projectTabId(project.path),
+      action: () => onOpenProject(project.path),
+    })),
+  ];
 
   return (
     <header className={`tb ${IS_MAC ? "tb-mac" : ""}`} data-tauri-drag-region>
@@ -154,31 +185,12 @@ export function TitleBar({
         </button>
         <AnimatePresence>
         {menuOpen && (
-          <motion.div
-            className="tb-menu"
-            initial={{ opacity: 0, scale: 0.95, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: -4, transition: { duration: 0.1 } }}
-            transition={{ type: "spring", stiffness: 560, damping: 34, mass: 0.7 }}
-            style={{ transformOrigin: "top right" }}
-          >
-            <button className="tb-menu-item" onClick={menuAction(onNewSkill)}>
-              new skill…
-            </button>
-            <button className="tb-menu-item" onClick={menuAction(onAddProject)}>
-              add project…
-            </button>
-            <button className="tb-menu-item" onClick={menuAction(onShowAllProjects)}>
-              all projects
-            </button>
-            <div className="tb-menu-sep" />
-            <button
-              className="tb-menu-item"
-              onClick={menuAction(() => openUrl(REPO_URL).catch(console.error))}
-            >
-              skilltastic on github
-            </button>
-          </motion.div>
+          <CommandMenu
+            entries={menuEntries}
+            placeholder="search…"
+            emptyText="nothing found."
+            onClose={() => setMenuOpen(false)}
+          />
         )}
         </AnimatePresence>
       </div>
