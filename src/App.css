@@ -40,7 +40,7 @@
     0 0 0 1px rgba(255, 255, 255, 0.09),
     0 2px 4px rgba(0, 0, 0, 0.55), 0 12px 32px rgba(0, 0, 0, 0.5),
     0 32px 80px rgba(0, 0, 0, 0.5);
-  --blur-panel: blur(22px) saturate(1.25);
+  --blur-panel: blur(14px) saturate(1.2);
 
   font-family: var(--font-sans);
   font-size: 13px;
@@ -77,6 +77,16 @@
 .icn circle,
 .icn line,
 .icn polyline {
+  vector-effect: non-scaling-stroke;
+}
+
+/* morphing icons share the crispness contract */
+.icn-morph {
+  display: block;
+  shape-rendering: geometricPrecision;
+}
+
+.icn-morph path {
   vector-effect: non-scaling-stroke;
 }
 
@@ -221,39 +231,6 @@ body,
   opacity: 0.75;
 }
 
-/* tool tabs: grid mark at rest, flask on hover (stacked crossfade) */
-.tb-icon-swap {
-  position: relative;
-  display: flex;
-  width: 12px;
-  height: 12px;
-}
-
-.tb-icon-rest,
-.tb-icon-hover {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  transition: opacity 150ms var(--ease-out), transform 200ms var(--ease-out);
-}
-
-.tb-icon-hover {
-  opacity: 0;
-  transform: scale(0.8) rotate(-8deg);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .tb-tab:hover .tb-icon-rest {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-
-  .tb-tab:hover .tb-icon-hover {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
-}
-
 .tb-tab-label {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -344,6 +321,54 @@ body,
 .tb-menu-btn.open {
   background: var(--tb-hover);
   color: var(--tb-text);
+}
+
+/* data-tip tooltips — replaces native title on window chrome */
+
+[data-tip] {
+  position: relative;
+}
+
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  z-index: 200;
+  transform: translateX(-50%) translateY(-2px);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #2c2c2c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--streak), 0 4px 12px rgba(0, 0, 0, 0.5);
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: #ececec;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms var(--ease-out), transform 150ms var(--ease-out);
+  transition-delay: 0ms;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-tip]:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    transition-delay: 350ms;
+  }
+}
+
+[data-tip-side="top"]::after {
+  top: auto;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%) translateY(2px);
+}
+
+[data-tip-side="top"]:hover::after {
+  transform: translateX(-50%) translateY(0);
 }
 
 /* command popover (watermelon combobox-1 port — opened by the arrow) */
@@ -577,9 +602,7 @@ body,
 .sidebar {
   width: 200px;
   flex-shrink: 0;
-  background: var(--panel);
-  backdrop-filter: var(--blur-panel);
-  -webkit-backdrop-filter: var(--blur-panel);
+  background: #0e0e0e;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 12px;
   box-shadow: var(--shadow-panel);
@@ -930,9 +953,7 @@ body,
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background: var(--panel);
-  backdrop-filter: var(--blur-panel);
-  -webkit-backdrop-filter: var(--blur-panel);
+  background: #0e0e0e;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 12px;
   box-shadow: var(--shadow-panel);
@@ -1066,6 +1087,12 @@ body,
 
 .search-wrap:focus-within .kbd {
   opacity: 0;
+}
+
+.kbd--hit {
+  transform: translateY(calc(-50% + 1px)) scale(0.94);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
+  color: #b5b5b5;
 }
 
 .skill-list {

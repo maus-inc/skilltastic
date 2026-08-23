@@ -27,7 +27,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <motion.button
       ref={ref}
       type={type}
-      whileTap={{ scale: 0.97 }}
+      whileTap={{ transform: "scale(0.97)" }}
       transition={{ type: "spring", stiffness: 600, damping: 30 }}
       className={["wm-btn", `wm-btn--${variant}`, `wm-btn--size-${size}`, className]
         .filter(Boolean)

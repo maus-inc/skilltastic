@@ -22,10 +22,11 @@ export function SkillList({ skills, toolEntries, emptyHint, onToggle, onOpen }: 
 
   return (
     <AnimatePresence initial={false} mode="popLayout">
-      {skills.map((skill) => (
+      {skills.map((skill, index) => (
         <SkillCard
           key={skill.id}
           skill={skill}
+          index={index}
           toolEntries={toolEntries}
           onToggle={onToggle}
           onOpen={onOpen}

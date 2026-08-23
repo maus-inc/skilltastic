@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ToolFolderInfo } from "../../types";
 import { Button } from "../ui/Button";
 import { PlusIcon } from "../ui/icons";
@@ -17,6 +17,7 @@ interface TopbarProps {
 
 export function Topbar({ title, subtitle, folders, query, onQueryChange, onForgetProject, onNewSkill }: TopbarProps) {
   const searchRef = useRef<HTMLInputElement>(null);
+  const [kbdHit, setKbdHit] = useState(false);
 
   // ⌘K / Ctrl+K focuses search whenever nothing else has claimed it;
   // Escape hands focus back. Keyboard-initiated, so no animation (the
@@ -25,6 +26,8 @@ export function Topbar({ title, subtitle, folders, query, onQueryChange, onForge
     function onKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
+        setKbdHit(true); // sink the keycap, then release
+        setTimeout(() => setKbdHit(false), 180);
         searchRef.current?.focus();
         searchRef.current?.select();
       }
@@ -79,7 +82,7 @@ export function Topbar({ title, subtitle, folders, query, onQueryChange, onForge
               if (e.key === "Escape") (e.target as HTMLInputElement).blur();
             }}
           />
-          <kbd className="kbd">⌘K</kbd>
+          <kbd className={`kbd ${kbdHit ? "kbd--hit" : ""}`}>⌘K</kbd>
         </div>
         {onForgetProject && (
           <Button variant="destructive" size="sm" onClick={onForgetProject}>

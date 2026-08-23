@@ -195,9 +195,18 @@ export function Sidebar({
                   e.stopPropagation();
                   onTogglePinTool(entry.id);
                 }}
-                title={pinnedTools.has(entry.id) ? "unpin" : "pin"}
+                data-tip={pinnedTools.has(entry.id) ? "unpin" : "pin"}
+                data-tip-side="top"
               >
-                <PinIcon filled={pinnedTools.has(entry.id)} />
+                <motion.span
+                  key={String(pinnedTools.has(entry.id))}
+                  initial={{ transform: "scale(0.5)" }}
+                  animate={{ transform: "scale(1)" }}
+                  transition={{ type: "spring", stiffness: 520, damping: 20, mass: 0.6 }}
+                  style={{ display: "flex" }}
+                >
+                  <PinIcon filled={pinnedTools.has(entry.id)} />
+                </motion.span>
               </button>
               <span className="count">{countForEntry(entry)}</span>
             </span>
@@ -247,9 +256,18 @@ export function Sidebar({
                 e.stopPropagation();
                 onTogglePinProject(p);
               }}
-              title={p.pinned ? "unpin" : "pin"}
+              data-tip={p.pinned ? "unpin" : "pin"}
+              data-tip-side="top"
             >
-              <PinIcon filled={p.pinned} />
+              <motion.span
+                key={String(p.pinned)}
+                initial={{ transform: "scale(0.5)" }}
+                animate={{ transform: "scale(1)" }}
+                transition={{ type: "spring", stiffness: 520, damping: 20, mass: 0.6 }}
+                style={{ display: "flex" }}
+              >
+                <PinIcon filled={p.pinned} />
+              </motion.span>
             </button>
           </span>
         </Reorder.Item>
