@@ -6,14 +6,20 @@ import { IN_TAURI } from "../../api/runtime";
 import { HOME_TAB_ID, projectTabId, toolTabId, type TitleTab } from "../../types";
 import { CommandMenu, type CommandEntry } from "../ui/CommandMenu";
 import {
+  ArrowUpRightIcon,
   ChevronDownIcon,
+  FlaskIcon,
   CloseIcon,
   FolderIcon,
+  FolderPlusIcon,
+  GithubIcon,
   GridIcon,
   HomeIcon,
+  ListIcon,
   MaximizeIcon,
   MinimizeIcon,
   MoreIcon,
+  PagePlusIcon,
   PlusIcon,
   RestoreIcon,
 } from "../ui/icons";
@@ -32,8 +38,8 @@ interface TitleBarProps {
   onNewSkill: () => void;
   onAddProject: () => void;
   onShowAllProjects: () => void;
-  /** Everything the dropdown can jump to. */
-  tools: { id: string; label: string }[];
+  /** Everything the dropdown can jump to. `mark` is the provider icon url. */
+  tools: { id: string; label: string; mark: string }[];
   projects: { path: string; name: string }[];
   onOpenTool: (toolId: string) => void;
   onOpenProject: (path: string) => void;
@@ -91,19 +97,45 @@ export function TitleBar({
   };
 
   const menuEntries: CommandEntry[] = [
-    { id: "act:new-skill", label: "new skill…", group: "actions", action: onNewSkill },
-    { id: "act:add-project", label: "add project…", group: "actions", action: onAddProject },
-    { id: "act:all-projects", label: "all projects", group: "actions", action: onShowAllProjects },
+    {
+      id: "act:new-skill",
+      label: "new skill…",
+      group: "actions",
+      icon: <PagePlusIcon size={12} />,
+      action: onNewSkill,
+    },
+    {
+      id: "act:add-project",
+      label: "add project…",
+      group: "actions",
+      icon: <FolderPlusIcon size={12} />,
+      action: onAddProject,
+    },
+    {
+      id: "act:all-projects",
+      label: "all projects",
+      group: "actions",
+      icon: <ListIcon size={12} />,
+      action: onShowAllProjects,
+    },
     {
       id: "act:github",
       label: "skilltastic on github",
       group: "actions",
+      icon: <GithubIcon size={12} />,
+      trailing: (
+        <span className="cmd-arrow">
+          <ArrowUpRightIcon size={12} />
+        </span>
+      ),
       action: () => openUrl(REPO_URL).catch(console.error),
     },
     ...tools.map((tool) => ({
       id: `tool:${tool.id}`,
       label: tool.label,
       group: "tools",
+      hint: "tool",
+      icon: <img className="cmd-item-mark" src={tool.mark} alt="" />,
       checked: activeTabId === toolTabId(tool.id),
       action: () => onOpenTool(tool.id),
     })),
@@ -111,6 +143,8 @@ export function TitleBar({
       id: `project:${project.path}`,
       label: project.name,
       group: "projects",
+      hint: "project",
+      icon: <FolderIcon size={12} />,
       checked: activeTabId === projectTabId(project.path),
       action: () => onOpenProject(project.path),
     })),
@@ -149,7 +183,18 @@ export function TitleBar({
             title={tab.kind === "project" ? tab.project.path : tab.label}
           >
             <span className="tb-tab-icon">
-              {tab.kind === "project" ? <FolderIcon size={13} /> : <GridIcon size={13} />}
+              {tab.kind === "project" ? (
+                <FolderIcon size={12} />
+              ) : (
+                <span className="tb-icon-swap">
+                  <span className="tb-icon-rest">
+                    <GridIcon size={12} />
+                  </span>
+                  <span className="tb-icon-hover">
+                    <FlaskIcon size={12} />
+                  </span>
+                </span>
+              )}
             </span>
             <span className="tb-tab-label">{tab.label}</span>
             <button
@@ -167,7 +212,7 @@ export function TitleBar({
         </AnimatePresence>
 
         <button className="tb-plus" onClick={onNewSkill} title="new skill">
-          <PlusIcon size={15} />
+          <PlusIcon size={16} />
         </button>
       </div>
 
@@ -187,7 +232,7 @@ export function TitleBar({
             animate={{ transform: menuOpen ? "rotate(180deg)" : "rotate(0deg)" }}
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
           >
-            {IS_MAC ? <MoreIcon size={15} /> : <ChevronDownIcon size={14} />}
+            {IS_MAC ? <MoreIcon size={16} /> : <ChevronDownIcon size={14} />}
           </motion.span>
         </button>
         <AnimatePresence>
@@ -206,13 +251,13 @@ export function TitleBar({
       {!IS_MAC && (
         <div className="tb-controls">
           <button className="tb-ctl" onClick={winCtl("minimize")} title="minimize">
-            <MinimizeIcon size={15} />
+            <MinimizeIcon size={16} />
           </button>
           <button className="tb-ctl" onClick={winCtl("toggleMaximize")} title={maximized ? "restore" : "maximize"}>
-            {maximized ? <RestoreIcon size={13} /> : <MaximizeIcon size={12} />}
+            {maximized ? <RestoreIcon size={14} /> : <MaximizeIcon size={12} />}
           </button>
           <button className="tb-ctl tb-ctl-close" onClick={winCtl("close")} title="close">
-            <CloseIcon size={15} />
+            <CloseIcon size={16} />
           </button>
         </div>
       )}

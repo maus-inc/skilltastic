@@ -12,6 +12,7 @@ import { usePinnedTools } from "./hooks/usePinnedTools";
 import { useProjects } from "./hooks/useProjects";
 import { useProjectSkills } from "./hooks/useProjectSkills";
 import { filterSkills } from "./utils/filterSkills";
+import { provider } from "./components/ui/providers";
 import { HOME_TAB_ID, projectTabId, toolTabId } from "./types";
 import type { AgentTool, ProjectInfo, Skill, TitleTab, ToolEntry, View } from "./types";
 import "./App.css";
@@ -166,7 +167,11 @@ function App() {
         onNewSkill={() => setCreatingSkill(true)}
         onAddProject={() => setAddingProject(true)}
         onShowAllProjects={() => setShowingAllProjects(true)}
-        tools={global.toolEntries.map((t) => ({ id: t.id, label: t.label }))}
+        tools={global.toolEntries.map((t) => ({
+          id: t.id,
+          label: t.label,
+          mark: provider((t.folders.find((f) => f.role === "own") ?? t.folders[0]).tool).icon,
+        }))}
         projects={projects.projects.map((p) => ({ path: p.path, name: p.name }))}
         onOpenTool={selectTool}
         onOpenProject={(path) => {

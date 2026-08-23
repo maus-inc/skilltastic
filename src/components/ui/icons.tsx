@@ -1,12 +1,19 @@
 import {
+  ArrowUpRight,
   Check,
+  Flask,
   Folder,
+  FolderPlus,
+  Github,
   Globe,
+  List,
   HomeSimple,
   Minus,
   MoreHoriz,
   NavArrowDown,
+  PagePlus,
   Pin,
+  PinSolid,
   Plus,
   Search,
   Square,
@@ -19,6 +26,10 @@ import {
  * outlines on a 24px grid, 1.5px stroke. Everything routes through these
  * wrappers so sizing/stroke stay consistent app-wide; import from here,
  * never from iconoir-react directly.
+ *
+ * Crispness rules: strokes are non-scaling (uniform 1.5 screen px, see
+ * the .icn css) and icon SIZES SHOULD BE EVEN NUMBERS — an odd size in
+ * an even container centers on a half pixel and antialiases soft.
  */
 
 interface IconProps {
@@ -38,8 +49,12 @@ const p = ({ size = 14, strokeWidth = 1.5 }: IconProps) => ({
   className: "icn",
 });
 
-export function PinIcon({ size = 12, strokeWidth = 1.5 }: IconProps) {
-  return <Pin {...p({ size, strokeWidth })} />;
+export function PinIcon({
+  size = 12,
+  strokeWidth = 1.5,
+  filled = false,
+}: IconProps & { filled?: boolean }) {
+  return filled ? <PinSolid {...p({ size, strokeWidth })} /> : <Pin {...p({ size, strokeWidth })} />;
 }
 
 export function CloseIcon({ size = 14, strokeWidth = 1.5 }: IconProps) {
@@ -80,6 +95,30 @@ export function CheckIcon(props: IconProps) {
 
 export function GlobeIcon(props: IconProps) {
   return <Globe {...p(props)} />;
+}
+
+export function FlaskIcon(props: IconProps) {
+  return <Flask {...p(props)} />;
+}
+
+export function ListIcon(props: IconProps) {
+  return <List {...p(props)} />;
+}
+
+export function GithubIcon(props: IconProps) {
+  return <Github {...p(props)} />;
+}
+
+export function ArrowUpRightIcon(props: IconProps) {
+  return <ArrowUpRight {...p(props)} />;
+}
+
+export function PagePlusIcon(props: IconProps) {
+  return <PagePlus {...p(props)} />;
+}
+
+export function FolderPlusIcon(props: IconProps) {
+  return <FolderPlus {...p(props)} />;
 }
 
 export function MinimizeIcon(props: IconProps) {
