@@ -39,7 +39,7 @@ export function Switch({
 
   return (
     <motion.button
-      whileTap={{ transform: "scale(0.93)" }}
+      whileTap={{ scale: 0.93 }}
       transition={{ type: "spring", stiffness: 700, damping: 30 }}
       type="button"
       role="switch"
