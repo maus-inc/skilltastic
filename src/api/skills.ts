@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./runtime";
 import type { AgentTool, Skill, SkillScope, ToolEntry } from "../types";
 
 /** Invoke wrappers over the skill commands in src-tauri/src/commands/skills.rs
