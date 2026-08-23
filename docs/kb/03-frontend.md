@@ -70,6 +70,10 @@ src/
 - **Layout:** Figma-UI3-style floating panels — the sidebar and main
   content are rounded (12px), bordered, translucent panels floating on
   an 8px-gapped black canvas under the title bar.
+- **Motion:** the `motion` package (Framer) drives all state-driven
+  animation — spring-based, through `motion/react`. Transform ownership
+  is exclusive: if motion animates an element, CSS must not transition
+  its transform. `MotionConfig reducedMotion="user"` is set at the root.
 - **Depth:** layered shadow tokens in `:root` (`--shadow-panel`,
   `--shadow-float`, `--shadow-modal`: hairline ring → contact → ambient
   → cast) plus `--blur-panel` backdrop blur on panels, menus, and
