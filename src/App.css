@@ -58,6 +58,21 @@
   box-sizing: border-box;
 }
 
+/* icon crispness: strokes stay 1.5 screen px at any size, geometry
+   renders at full precision instead of snapping soft */
+.icn {
+  shape-rendering: geometricPrecision;
+  display: block;
+}
+
+.icn path,
+.icn rect,
+.icn circle,
+.icn line,
+.icn polyline {
+  vector-effect: non-scaling-stroke;
+}
+
 html,
 body,
 #root {
@@ -240,6 +255,22 @@ body,
 .tb-plus:hover {
   background: var(--tb-hover);
   color: var(--tb-text);
+}
+
+.tb-plus .icn {
+  transition: transform 200ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tb-plus:hover .icn {
+    transform: rotate(90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tb-plus .icn {
+    transition: none;
+  }
 }
 
 /* draggable dead zone */
@@ -989,6 +1020,7 @@ body,
 }
 
 .skill-path {
+  padding-right: 56px;
   color: var(--text-faint);
   font-size: 11px;
   margin-top: 6px;
@@ -1628,6 +1660,21 @@ body,
   padding: 2px;
   border-radius: 4px;
   opacity: 0;
+}
+
+.pin-btn .icn {
+  transition: transform 180ms var(--ease-out);
+  transform: rotate(35deg);
+}
+
+.pin-btn.pinned .icn {
+  transform: rotate(0deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-btn .icn {
+    transition: none;
+  }
 }
 
 .nav-item:hover .pin-btn,

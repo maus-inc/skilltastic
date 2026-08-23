@@ -26,17 +26,23 @@ interface IconProps {
   strokeWidth?: number;
 }
 
-const p = ({ size = 14, strokeWidth = 1.6 }: IconProps) => ({
+/**
+ * All icons ship with the `icn` class: strokes are non-scaling (1.5px
+ * in screen pixels at any icon size) and geometry renders at full
+ * precision — this is what keeps the set crisp at 10–16px.
+ */
+const p = ({ size = 14, strokeWidth = 1.5 }: IconProps) => ({
   width: size,
   height: size,
   strokeWidth,
+  className: "icn",
 });
 
-export function PinIcon({ size = 12, strokeWidth = 1.8 }: IconProps) {
+export function PinIcon({ size = 12, strokeWidth = 1.5 }: IconProps) {
   return <Pin {...p({ size, strokeWidth })} />;
 }
 
-export function CloseIcon({ size = 14, strokeWidth = 1.8 }: IconProps) {
+export function CloseIcon({ size = 14, strokeWidth = 1.5 }: IconProps) {
   return <Xmark {...p({ size, strokeWidth })} />;
 }
 
@@ -88,7 +94,7 @@ export function MaximizeIcon(props: IconProps) {
  *  drawn locally to the same 24px/1.5px conventions. */
 export function RestoreIcon({ size = 14, strokeWidth = 1.5 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth}>
+    <svg className="icn" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth}>
       <rect x="4" y="8" width="12" height="12" rx="1" />
       <path d="M8 8V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-3" />
     </svg>

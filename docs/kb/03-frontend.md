@@ -70,10 +70,14 @@ src/
   `components/ui/providers.ts`. Skill cards show them in outline
   badges (`ui/Badge.tsx`, port of Watermelon badge-16). A new tool
   adapter requires a mark + store entry.
-- **Icons:** Iconoir (`iconoir-react`, MIT) — 24px grid, ~1.5px stroke.
-  All icons route through the wrappers in `components/ui/icons.tsx`;
-  never import from `iconoir-react` directly in feature code. The
-  Windows "restore down" glyph is the one local exception.
+- **Icons:** Iconoir (`iconoir-react`, MIT) — 24px grid. All icons
+  route through the wrappers in `components/ui/icons.tsx`; never
+  import from `iconoir-react` directly in feature code. The Windows
+  "restore down" glyph is the one local exception. Crispness contract:
+  every wrapper emits the `icn` class — strokes are non-scaling (a
+  uniform 1.5 screen px at any icon size) with geometricPrecision
+  rendering. Don't pass per-site strokeWidth overrides; the uniform
+  stroke IS the system look.
 - **Layout:** Figma-UI3-style floating panels — the sidebar and main
   content are rounded (12px), bordered, translucent panels floating on
   an 8px-gapped black canvas under the title bar.
