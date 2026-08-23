@@ -349,23 +349,31 @@ body,
 
 .cmd-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   padding: 5px 8px;
   border-radius: 7px;
   font-size: 12px;
   color: #e6e6e6;
   cursor: default;
+}
+
+/* the nudge lives on an inner wrapper so it never fights motion's
+   inline transform on the row itself (transform ownership rule) */
+.cmd-item-inner {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   transition: transform 150ms var(--ease-out);
 }
 
-.cmd-item[data-highlighted="true"] {
+.cmd-item[data-highlighted="true"] .cmd-item-inner {
   transform: translateX(2px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cmd-item[data-highlighted="true"] {
+  .cmd-item[data-highlighted="true"] .cmd-item-inner {
     transform: none;
   }
 }
