@@ -852,19 +852,46 @@ body,
   color: var(--text);
 }
 
-.tool-tag {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--accent-bright);
-  border: 1px solid var(--border-strong);
-  border-radius: 4px;
-  padding: 1px 6px;
+/* outline badge (watermelon badge-16 port) */
+
+.wm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 18px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: var(--streak);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.scope-tag {
-  font-size: 10px;
-  color: var(--text-faint);
+.wm-badge--with-icon {
+  padding-left: 2px;
+}
+
+.wm-badge-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: var(--streak);
+  overflow: hidden;
+}
+
+.wm-badge-tile img {
+  width: 9px;
+  height: 9px;
+  display: block;
 }
 
 .skill-desc {

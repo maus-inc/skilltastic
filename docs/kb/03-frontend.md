@@ -63,6 +63,13 @@ src/
   −0.01em tracking — condensed, compact. Monospace stays for terminal
   accents: skill names, paths, chips, the search box, empty states, and
   the ASCII brand.
+- **Provider marks:** brand icons for every supported tool live in
+  `public/agents/*.svg` (source: `@lobehub/icons-static-svg`, recolored
+  to the mono theme; Crush/Factory are local monograms, the shared
+  agents dir a prompt glyph), mapped through the store in
+  `components/ui/providers.ts`. Skill cards show them in outline
+  badges (`ui/Badge.tsx`, port of Watermelon badge-16). A new tool
+  adapter requires a mark + store entry.
 - **Icons:** Iconoir (`iconoir-react`, MIT) — 24px grid, ~1.5px stroke.
   All icons route through the wrappers in `components/ui/icons.tsx`;
   never import from `iconoir-react` directly in feature code. The
