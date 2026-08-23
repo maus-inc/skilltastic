@@ -535,6 +535,34 @@ body,
   color: var(--text-faint);
 }
 
+.nav-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-mark {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.nav-item.active .nav-mark,
+.nav-item:hover .nav-mark {
+  opacity: 1;
+}
+
+.chip-mark {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
 .nav-section-label {
   font-size: 9.5px;
   font-weight: 700;
@@ -939,7 +967,19 @@ body,
   /* soft window edges so the roll dissolves instead of clipping */
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 2px, #000 9px, transparent 11px);
   mask-image: linear-gradient(to bottom, transparent 0, #000 2px, #000 9px, transparent 11px);
-  transition: color 150ms var(--ease-out);
+  opacity: 0;
+  transition: color 150ms var(--ease-out), opacity 150ms var(--ease-out);
+}
+
+.skill-card:hover .rolling-label,
+.switch-col:focus-within .rolling-label {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .rolling-label {
+    opacity: 1;
+  }
 }
 
 .rolling-label.is-on {
@@ -1326,6 +1366,9 @@ body,
 }
 
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 10px;
   border: 1px solid var(--border);
   border-radius: 8px;

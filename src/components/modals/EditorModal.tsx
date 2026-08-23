@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "../ui/Button";
+import { provider } from "../ui/providers";
 import { api } from "../../api";
 import { CloseIcon } from "../ui/icons";
 import { ModalShell } from "../ui/ModalShell";
@@ -69,6 +70,11 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
                     className={`chip ${via?.role === "compat" ? "compat" : ""}`}
                     title={via?.role === "compat" ? `via the shared ${skill.tool} folder` : "primary location"}
                   >
+                    <img
+                      className="chip-mark"
+                      src={provider((t.folders.find((f) => f.role === "own") ?? t.folders[0]).tool).icon}
+                      alt=""
+                    />
                     {t.label}
                   </span>
                 );

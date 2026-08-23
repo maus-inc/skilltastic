@@ -4,6 +4,7 @@ import { IN_TAURI } from "../../api/runtime";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { orderToolsByPin, selectVisibleProjects } from "../../utils/sidebarLists";
 import { PinIcon } from "../ui/icons";
+import { provider } from "../ui/providers";
 import type { ProjectInfo, ToolEntry, View } from "../../types";
 
 const ALL = "all" as const;
@@ -114,7 +115,14 @@ export function Sidebar({
             onClick={() => onSelectTool(entry.id)}
             title={entry.folders.map((f) => f.dir).join("\n")}
           >
-            <span className={anyDirExists ? "" : "dir-missing"}>{entry.label}</span>
+            <span className={`nav-label ${anyDirExists ? "" : "dir-missing"}`}>
+              <img
+                className="nav-mark"
+                src={provider((entry.folders.find((f) => f.role === "own") ?? entry.folders[0]).tool).icon}
+                alt=""
+              />
+              {entry.label}
+            </span>
             <span className="nav-right">
               <button
                 className={`pin-btn ${pinnedTools.has(entry.id) ? "pinned" : ""}`}
