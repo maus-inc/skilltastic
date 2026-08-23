@@ -912,6 +912,44 @@ body,
   word-break: break-all;
 }
 
+/* switch column: control + rolling state readout */
+
+.switch-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.rolling-label {
+  display: block;
+  height: 11px;
+  min-width: 24px;
+  overflow: hidden;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  line-height: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  pointer-events: none;
+  user-select: none;
+  /* soft window edges so the roll dissolves instead of clipping */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 2px, #000 9px, transparent 11px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 2px, #000 9px, transparent 11px);
+  transition: color 150ms var(--ease-out);
+}
+
+.rolling-label.is-on {
+  color: var(--text-dim);
+}
+
+.rolling-label-text {
+  display: block;
+}
+
 /* square switch — port of watermelon.sh switch-2 (shadcn switch, rounded-xs) */
 
 .switch {
