@@ -64,6 +64,20 @@ Any new command that touches disk goes through the same gate. The CSP in
 `tauri.conf.json` is deliberately tight (`self` + ipc only); capabilities in
 `src-tauri/capabilities/default.json` only allow opening the repo URLs.
 
+Two hardening rules on top:
+
+- **Operate on the validated snapshot.** `manageable_manifest()` returns the
+  canonical path produced by the resolution check, and commands run their
+  filesystem operation on exactly that path — never on the raw webview
+  string — so a symlink swapped between check and use changes nothing.
+- **Deleting never follows links.** `delete_skill_dir()` inspects the skill
+  folder with `symlink_metadata`: a linked skill is unlinked (the user's
+  original folder elsewhere survives), only plain folders recurse.
+
+`projects::add()` normalizes webview-supplied paths the same way — a tracked
+project becomes managed roots, so enrollment canonicalizes the path and
+requires an existing directory.
+
 ## Enable/disable semantics
 
 Disabling moves `<dir>/<skill>/` → `<dir>/.disabled/<skill>/`; enabling moves

@@ -8,8 +8,11 @@ port 1420 (`vite.config.ts`), which `tauri.conf.json` points at during dev.
 ```
 src/
   api/            typed invoke() wrappers — the ONLY place IPC happens
-    runtime.ts    the invoke() shim: real IPC in the desktop app, read-only
-                  fixtures in a plain-browser dev preview (never in prod)
+    runtime.ts    the invoke() shim: real IPC in the desktop app, a fully
+                  interactive session-local fixture store in a plain-browser
+                  dev preview (never in prod). Handlers mirror the Rust
+                  commands' shapes — void commands return `null`, and unit
+                  tests in src/api/__tests__ guard the whole surface.
     skills.ts     skill commands (list, toggle, read/write, create, delete)
     projects.ts   project commands (tracked + detected projects)
     index.ts      barrel
@@ -85,12 +88,22 @@ src/
   content are rounded (12px), bordered, translucent panels floating on
   an 8px-gapped black canvas under the title bar.
 - **Morphing icons:** `morphicons` (spring path-morphing, zero deps)
-  drives every reactive icon that transforms between two shapes —
+  drives reactive icons that transform between two STROKE shapes —
   configured wrappers live in `ui/morphs.tsx` (chevron open/close,
-  grid↔flask on tool tabs, maximize↔restore). Icon data comes from
-  the `iconoir` package as `?raw` svg parsed ONCE at module scope
-  (plan-cache requirement). Binary state swaps (pin fill) stay keyed
-  re-mounts; morphs are for shape-to-shape transitions.
+  maximize↔restore). Icon data comes from the `iconoir` package as
+  `?raw` svg parsed ONCE at module scope (plan-cache requirement).
+  Binary state swaps (pin fill) stay keyed re-mounts; morphs are for
+  shape-to-shape transitions. Tool tabs are the exception: they swap
+  the grid glyph for the tool's OWN provider mark (`ToolTabMark`), a
+  spring cross-morph, because provider logos are fill-drawn and
+  `svgToIcon` honestly rejects fill-only icons — never fake a fill
+  logo into a path morph.
+- **Morph buttons (`btn-morph`):** the label⇄icon hover morph (new
+  skill, editor edit/delete) stacks both states in ONE grid cell, so
+  the button footprint never changes while morphing — the label
+  fades/scales in place while the icon rotates in centered. Never
+  animate the button's width; pointer-gated, reduced-motion keeps the
+  fade only.
 - **Tooltips:** `[data-tip]` / `[data-tip-side="top"]` css tooltips
   (350ms intent delay) replace native `title` on window chrome, pins
   and the scope chip. Prefer them over `title` on interactive chrome.
