@@ -1524,30 +1524,28 @@ body,
 
 /* morphing button: text at rest, condenses to a plus on hover */
 
-/* btn-morph — label⇄icon morph with a STABLE footprint: both states stack
-   in the same grid cell, so the button never changes size while morphing.
-   The label fades/scales in place while the icon rotates in centered —
-   same vocabulary as the title-bar plus. */
+/* btn-morph — label⇄icon morph with a STABLE footprint. The label stays
+   in normal flow (it alone sizes the button, and keeps its footprint at
+   opacity 0, so the button never changes size or collapses); the icon
+   sits absolutely centered over it. Hover fades the label and rotates
+   the icon in. Never animate width; pointer-gated; reduced-motion keeps
+   the fade only. */
 .btn-morph {
-  display: inline-grid;
-  align-items: center;
-  justify-items: center;
-}
-
-.btn-morph-label,
-.btn-morph-icon {
-  grid-area: 1 / 1;
+  position: relative;
 }
 
 .btn-morph-label {
-  white-space: nowrap;
+  display: block;
   transition: opacity 150ms var(--ease-out), transform 220ms var(--ease-out);
 }
 
 .btn-morph-icon {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
   opacity: 0;
   transform: rotate(-90deg) scale(0.6);
   transition: opacity 150ms var(--ease-out), transform 220ms var(--ease-out);
