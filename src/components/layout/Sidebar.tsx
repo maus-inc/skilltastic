@@ -38,6 +38,19 @@ interface SidebarProps {
   onAddProject: () => void;
 }
 
+const BRAND_ASCII = `███████╗██╗  ██╗██╗██╗     ██╗     
+██╔════╝██║ ██╔╝██║██║     ██║     
+███████╗█████╔╝ ██║██║     ██║     
+╚════██║██╔═██╗ ██║██║     ██║     
+███████║██║  ██╗██║███████╗███████╗
+╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝
+████████╗ █████╗ ███████╗████████╗██╗ ██████╗
+╚══██╔══╝██╔══██╗██╔════╝╚══██╔══╝██║██╔════╝
+   ██║   ███████║███████╗   ██║   ██║██║     
+   ██║   ██╔══██║╚════██║   ██║   ██║██║     
+   ██║   ██║  ██║███████║   ██║   ██║╚██████╗
+   ╚═╝   ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝ ╚═════╝`;
+
 export function Sidebar({
   toolEntries,
   totalSkillCount,
@@ -76,10 +89,12 @@ export function Sidebar({
   return (
     <aside className="sidebar">
       <div className="brand">
-        <img src="/skilltastic.png" alt="Skilltastic" />
-        <span className="brand-name">
-          Skill<span className="accent">tastic</span>
-        </span>
+        <pre className="brand-ascii" aria-label="Skilltastic">
+          {BRAND_ASCII}
+        </pre>
+        <div className="brand-prompt">
+          <span className="prompt-char">$</span> skilltastic <span className="prompt-dim">--all</span>
+        </div>
       </div>
 
       <div

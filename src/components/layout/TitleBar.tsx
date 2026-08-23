@@ -3,6 +3,18 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { IN_TAURI } from "../../api/runtime";
 import { HOME_TAB_ID, type TitleTab } from "../../types";
+import {
+  ChevronDownIcon,
+  CloseIcon,
+  FolderIcon,
+  GridIcon,
+  HomeIcon,
+  MaximizeIcon,
+  MinimizeIcon,
+  MoreIcon,
+  PlusIcon,
+  RestoreIcon,
+} from "../ui/icons";
 
 const REPO_URL = "https://github.com/maus-inc/skilltastic";
 
@@ -83,7 +95,7 @@ export function TitleBar({
         onClick={() => onActivateTab(HOME_TAB_ID)}
         title="all skills"
       >
-        <HomeGlyph />
+        <HomeIcon size={16} strokeWidth={1.5} />
       </button>
 
       {/* file tabs */}
@@ -99,7 +111,7 @@ export function TitleBar({
             title={tab.kind === "project" ? tab.project.path : tab.label}
           >
             <span className="tb-tab-icon">
-              {tab.kind === "project" ? <FolderGlyph /> : <ToolGlyph />}
+              {tab.kind === "project" ? <FolderIcon size={13} /> : <GridIcon size={13} />}
             </span>
             <span className="tb-tab-label">{tab.label}</span>
             <button
@@ -110,13 +122,13 @@ export function TitleBar({
               }}
               title="close tab"
             >
-              <CloseGlyph size={9} />
+              <CloseIcon size={12} strokeWidth={2} />
             </button>
           </div>
         ))}
 
         <button className="tb-plus" onClick={onNewSkill} title="new skill">
-          <PlusGlyph />
+          <PlusIcon size={15} strokeWidth={1.6} />
         </button>
       </div>
 
@@ -130,7 +142,7 @@ export function TitleBar({
           onClick={() => setMenuOpen((o) => !o)}
           title="menu"
         >
-          {IS_MAC ? <DotsGlyph /> : <ChevronGlyph />}
+          {IS_MAC ? <MoreIcon size={15} /> : <ChevronDownIcon size={14} />}
         </button>
         {menuOpen && (
           <div className="tb-menu">
@@ -158,104 +170,16 @@ export function TitleBar({
       {!IS_MAC && (
         <div className="tb-controls">
           <button className="tb-ctl" onClick={winCtl("minimize")} title="minimize">
-            <MinimizeGlyph />
+            <MinimizeIcon size={15} strokeWidth={1.4} />
           </button>
           <button className="tb-ctl" onClick={winCtl("toggleMaximize")} title={maximized ? "restore" : "maximize"}>
-            {maximized ? <RestoreGlyph /> : <MaximizeGlyph />}
+            {maximized ? <RestoreIcon size={13} strokeWidth={1.4} /> : <MaximizeIcon size={12} strokeWidth={1.4} />}
           </button>
           <button className="tb-ctl tb-ctl-close" onClick={winCtl("close")} title="close">
-            <CloseGlyph size={10} />
+            <CloseIcon size={15} strokeWidth={1.4} />
           </button>
         </div>
       )}
     </header>
-  );
-}
-
-/* ---------- glyphs (1px strokes, drawn to match Figma/Windows metrics) ---------- */
-
-function HomeGlyph() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.2">
-      <path d="M2.5 6.5 7.5 2.5l5 4v5.5a.5.5 0 0 1-.5.5H9.5V9h-4v3.5H3a.5.5 0 0 1-.5-.5V6.5z" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ToolGlyph() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.1">
-      <rect x="1" y="1" width="4" height="4" rx="0.8" />
-      <rect x="7" y="1" width="4" height="4" rx="0.8" />
-      <rect x="1" y="7" width="4" height="4" rx="0.8" />
-      <rect x="7" y="7" width="4" height="4" rx="0.8" />
-    </svg>
-  );
-}
-
-function FolderGlyph() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.1">
-      <path d="M1 3a1 1 0 0 1 1-1h2.6l1.2 1.4H10a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3z" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function PlusGlyph() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2">
-      <path d="M7 2.5v9M2.5 7h9" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ChevronGlyph() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2">
-      <path d="m2.5 4.5 3.5 3.5 3.5-3.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function DotsGlyph() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-      <circle cx="3" cy="7" r="1.1" />
-      <circle cx="7" cy="7" r="1.1" />
-      <circle cx="11" cy="7" r="1.1" />
-    </svg>
-  );
-}
-
-function MinimizeGlyph() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" strokeWidth="1">
-      <path d="M0.5 5.5h9" />
-    </svg>
-  );
-}
-
-function MaximizeGlyph() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
-      <rect x="0.5" y="0.5" width="9" height="9" />
-    </svg>
-  );
-}
-
-function RestoreGlyph() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
-      <rect x="0.5" y="2.5" width="7" height="7" />
-      <path d="M2.5 2.5v-2h7v7h-2" />
-    </svg>
-  );
-}
-
-function CloseGlyph({ size = 10 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 10 10" stroke="currentColor" strokeWidth="1.1">
-      <path d="m0.8 0.8 8.4 8.4M9.2 0.8 0.8 9.2" strokeLinecap="round" />
-    </svg>
   );
 }

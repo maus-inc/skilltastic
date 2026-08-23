@@ -53,7 +53,27 @@ src/
   Rust side. Anything that must survive reinstall belongs in the backend
   stores instead.
 - **Branding:** the in-app logo is `/skilltastic.png` (from `public/`),
-  referenced in `Sidebar.tsx` and as the favicon in `index.html`.
+  referenced as the favicon in `index.html`; the sidebar brand is a
+  skills.sh-style ANSI-Shadow figlet banner (`BRAND_ASCII` in `Sidebar.tsx`).
+
+## Design language (phase 2)
+
+- **Type:** Satoshi (self-hosted woff2 in `public/fonts/satoshi/`,
+  `src/fonts.css`, ITF Free Font License) at 13px base with tight
+  −0.01em tracking — condensed, compact. Monospace stays for terminal
+  accents: skill names, paths, chips, the search box, empty states, and
+  the ASCII brand.
+- **Icons:** Iconoir (`iconoir-react`, MIT) — 24px grid, ~1.5px stroke.
+  All icons route through the wrappers in `components/ui/icons.tsx`;
+  never import from `iconoir-react` directly in feature code. The
+  Windows "restore down" glyph is the one local exception.
+- **Layout:** Figma-UI3-style floating panels — the sidebar and main
+  content are rounded (12px), bordered, translucent panels floating on
+  an 8px-gapped black canvas under the title bar.
+- **Depth:** layered shadow tokens in `:root` (`--shadow-panel`,
+  `--shadow-float`, `--shadow-modal`: hairline ring → contact → ambient
+  → cast) plus `--blur-panel` backdrop blur on panels, menus, and
+  modals. Use the tokens; don't hand-roll box-shadows.
 
 ## The title bar (custom window chrome)
 
