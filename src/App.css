@@ -350,13 +350,13 @@ body,
 }
 
 .cmd-group + .cmd-group {
-  margin-top: 2px;
-  padding-top: 2px;
+  margin-top: 5px;
+  padding-top: 5px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .cmd-group-label {
-  padding: 3px 8px 1px;
+  padding: 5px 8px 3px;
   font-size: 8.5px;
   font-weight: 700;
   line-height: 1.1;
@@ -597,6 +597,24 @@ body,
   .chip--iconic .chip-label {
     transition: opacity 150ms var(--ease-out);
   }
+}
+
+/* scope chip pinned to the card's bottom-right corner */
+.scope-corner {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  color: var(--text-faint);
+  background: rgba(255, 255, 255, 0.02);
+  transition: color 150ms var(--ease-out);
+}
+
+.scope-corner svg {
+  flex-shrink: 0;
+}
+
+.scope-corner:hover {
+  color: var(--text-dim);
 }
 
 .nav-section-label {
@@ -876,6 +894,7 @@ body,
 }
 
 .skill-card {
+  position: relative; /* anchors the scope corner chip */
   display: flex;
   align-items: flex-start;
   gap: 10px;
