@@ -320,7 +320,25 @@ body,
 .cmd-list {
   max-height: 260px;
   overflow-y: auto;
-  padding: 5px;
+  padding: 6px;
+  scroll-padding-block: 8px;
+  /* invisible clip inset: rows fade out just before the rounded edge
+     instead of being sliced by it — reads as rounded padding, matches
+     any bg because it's a mask, not a painted outline */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 10px,
+    #000 calc(100% - 10px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 10px,
+    #000 calc(100% - 10px),
+    transparent 100%
+  );
 }
 
 .cmd-empty {
