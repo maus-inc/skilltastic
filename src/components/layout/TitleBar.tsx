@@ -181,7 +181,14 @@ export function TitleBar({
           onClick={() => setMenuOpen((o) => !o)}
           title="menu"
         >
-          {IS_MAC ? <MoreIcon size={15} /> : <ChevronDownIcon size={14} />}
+          <motion.span
+            className="tb-menu-icon"
+            initial={false}
+            animate={{ transform: menuOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          >
+            {IS_MAC ? <MoreIcon size={15} /> : <ChevronDownIcon size={14} />}
+          </motion.span>
         </button>
         <AnimatePresence>
         {menuOpen && (

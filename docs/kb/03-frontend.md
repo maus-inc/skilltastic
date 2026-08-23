@@ -70,10 +70,22 @@ src/
 - **Layout:** Figma-UI3-style floating panels — the sidebar and main
   content are rounded (12px), bordered, translucent panels floating on
   an 8px-gapped black canvas under the title bar.
-- **Motion:** the `motion` package (Framer) drives all state-driven
-  animation — spring-based, through `motion/react`. Transform ownership
-  is exclusive: if motion animates an element, CSS must not transition
-  its transform. `MotionConfig reducedMotion="user"` is set at the root.
+- **Motion:** the `motion` package (Framer) via `motion/react`.
+  Transform ownership is exclusive: if motion animates an element, CSS
+  must not transition its transform. `MotionConfig reducedMotion="user"`
+  is set at the root.
+- **Animation doctrine** (per animations.dev / emilkowalski/skills,
+  vendored knowledge — re-fetch with `git clone
+  github.com/emilkowalski/skills`): springs are for gestures and
+  physical interactions (switch thumb, tap feedback); menus/popovers/
+  modals tween 150–250ms on the strong ease-out
+  `cubic-bezier(0.23,1,0.32,1)` (`--ease-out` token), scaling from
+  0.95–0.97 out of the trigger's transform-origin — never `scale(0)`,
+  never `ease-in`, never >300ms on UI. Exits mirror entries but
+  faster. In motion props use full `transform` strings (GPU) rather
+  than x/y/scale shorthands. Hover motion stays near-imperceptible
+  (≤2px) and is CSS-owned with a reduced-motion gate. Keyboard-
+  initiated actions (⌘K) get no animation.
 - **Edge light ("streak"):** every raised dark surface carries a 1px
   white inset streak along its top edge — tokens `--streak` (0.07),
   `--streak-md` (0.11); white surfaces (default buttons, checked
