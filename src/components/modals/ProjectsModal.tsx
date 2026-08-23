@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Button } from "../ui/Button";
 import { lastUsed, usageCount } from "../../utils/projectUsage";
 import { relativeTime } from "../../utils/relativeTime";
 import { SortToggle } from "../skills/SortToggle";
@@ -49,9 +50,9 @@ export function ProjectsModal({ projects, skillCounts, activePath, onClose, onOp
             ]}
             onChange={(id) => setSortBy(id as "usage" | "skills")}
           />
-          <button className="icon-btn square" onClick={onClose} title="close">
+          <Button variant="ghost" size="icon-sm" onClick={onClose} title="close" aria-label="close">
             <CloseIcon />
-          </button>
+          </Button>
         </div>
 
         <div className="add-modal-body">

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Button } from "../ui/Button";
 import { api } from "../../api";
 import { relativeTime } from "../../utils/relativeTime";
 import { SortToggle } from "../skills/SortToggle";
@@ -96,9 +97,9 @@ export function AddProjectModal({ trackedPaths, onClose, onAdd, onBrowse }: AddP
             ]}
             onChange={(id) => setSortBy(id as "activity" | "skills")}
           />
-          <button className="icon-btn square" onClick={onClose} title="close">
+          <Button variant="ghost" size="icon-sm" onClick={onClose} title="close" aria-label="close">
             <CloseIcon />
-          </button>
+          </Button>
         </div>
 
         <div className="add-modal-body">
@@ -111,9 +112,9 @@ export function AddProjectModal({ trackedPaths, onClose, onAdd, onBrowse }: AddP
                 This checks only normal development folders and project paths from your editor and
                 agent history. The result is saved, so reopening this picker does not scan again.
               </p>
-              <button className="btn" onClick={discover} disabled={scanning}>
+              <Button variant="outline" size="sm" onClick={discover} disabled={scanning}>
                 {scanning ? "finding recent projects…" : "find recent projects"}
-              </button>
+              </Button>
             </div>
           ) : (
             <>
@@ -165,13 +166,13 @@ export function AddProjectModal({ trackedPaths, onClose, onAdd, onBrowse }: AddP
         <div className="modal-footer">
           <div className="footer-spacer">
             {detected !== null && (
-              <button className="btn" onClick={discover} disabled={scanning || adding !== null}>
+              <Button variant="outline" size="sm" onClick={discover} disabled={scanning || adding !== null}>
                 {scanning ? "refreshing…" : "refresh recent projects"}
-              </button>
+              </Button>
             )}
-            <button className="btn" onClick={browse} disabled={adding !== null}>
+            <Button variant="outline" size="sm" onClick={browse} disabled={adding !== null}>
               browse folders…
-            </button>
+            </Button>
           </div>
         </div>
     </ModalShell>
