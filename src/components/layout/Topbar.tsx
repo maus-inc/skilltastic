@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { ToolFolderInfo } from "../../types";
 import { Button } from "../ui/Button";
+import { PlusIcon } from "../ui/icons";
 
 interface TopbarProps {
   title: string;
@@ -53,8 +54,18 @@ export function Topbar({ title, subtitle, folders, query, onQueryChange, onForge
       </div>
       <div className="topbar-actions">
         {onNewSkill && (
-          <Button variant="default" size="sm" onClick={onNewSkill} title="create a new skill from a minimal template">
-            new skill
+          <Button
+            variant="default"
+            size="sm"
+            className="btn-morph"
+            onClick={onNewSkill}
+            title="create a new skill from a minimal template"
+            aria-label="new skill"
+          >
+            <span className="btn-morph-label">new skill</span>
+            <span className="btn-morph-plus">
+              <PlusIcon size={14} strokeWidth={2} />
+            </span>
           </Button>
         )}
         <div className="search-wrap">

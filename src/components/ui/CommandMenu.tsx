@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
 
 /** Strong ease-out (animations.dev): dropdowns tween 150–250ms out of
@@ -13,6 +13,12 @@ export interface CommandEntry {
   group?: string;
   /** Marks the entry as the currently-active selection (check at right). */
   checked?: boolean;
+  /** Leading mark — an icon component or an <img>. */
+  icon?: ReactNode;
+  /** Faint type label at the back of the row (e.g. "tool"). */
+  hint?: string;
+  /** Trailing affordance (e.g. the github redirect arrow). */
+  trailing?: ReactNode;
   action: () => void;
 }
 
@@ -108,7 +114,7 @@ export function CommandMenu({
       onKeyDown={onKeyDown}
     >
       <div className="cmd-input-row">
-        <SearchIcon size={13} />
+        <SearchIcon size={12} />
         <input
           ref={inputRef}
           className="cmd-input"
@@ -146,8 +152,13 @@ export function CommandMenu({
                   onClick={() => select(entry)}
                 >
                   <span className="cmd-item-inner">
+                    {entry.icon && <span className="cmd-item-icon">{entry.icon}</span>}
                     <span className="cmd-item-label">{entry.label}</span>
-                    {entry.checked && <CheckIcon size={13} />}
+                    {entry.hint && !entry.checked && (
+                      <span className="cmd-item-hint">{entry.hint}</span>
+                    )}
+                    {entry.trailing}
+                    {entry.checked && <CheckIcon size={12} />}
                   </span>
                 </motion.div>
               );

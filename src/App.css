@@ -214,6 +214,39 @@ body,
   opacity: 0.75;
 }
 
+/* tool tabs: grid mark at rest, flask on hover (stacked crossfade) */
+.tb-icon-swap {
+  position: relative;
+  display: flex;
+  width: 12px;
+  height: 12px;
+}
+
+.tb-icon-rest,
+.tb-icon-hover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  transition: opacity 150ms var(--ease-out), transform 200ms var(--ease-out);
+}
+
+.tb-icon-hover {
+  opacity: 0;
+  transform: scale(0.8) rotate(-8deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tb-tab:hover .tb-icon-rest {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  .tb-tab:hover .tb-icon-hover {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
 .tb-tab-label {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -351,23 +384,24 @@ body,
 .cmd-list {
   max-height: 260px;
   overflow-y: auto;
-  padding: 6px;
+  padding: 8px;
   scroll-padding-block: 8px;
   /* invisible clip inset: rows fade out just before the rounded edge
-     instead of being sliced by it — reads as rounded padding, matches
-     any bg because it's a mask, not a painted outline */
+     instead of being sliced by it. fade span (8px) matches the list
+     padding so resting content sits fully outside the fade zone —
+     only scrolled-under rows dissolve */
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0,
-    #000 10px,
-    #000 calc(100% - 10px),
+    #000 8px,
+    #000 calc(100% - 8px),
     transparent 100%
   );
   mask-image: linear-gradient(
     to bottom,
     transparent 0,
-    #000 10px,
-    #000 calc(100% - 10px),
+    #000 8px,
+    #000 calc(100% - 8px),
     transparent 100%
   );
 }
@@ -438,9 +472,71 @@ body,
 }
 
 .cmd-item-label {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cmd-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+
+.cmd-item[data-highlighted="true"] .cmd-item-icon {
+  color: var(--text-dim);
+}
+
+.cmd-item-mark {
+  width: 11px;
+  height: 11px;
+  display: block;
+  opacity: 0.85;
+}
+
+.cmd-item-hint {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  opacity: 0.7;
+}
+
+/* github redirect arrow: beckons with a diagonal loop on row hover */
+.cmd-arrow {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+
+@keyframes cmd-arrow-beckon {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(2px, -2px);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmd-item[data-highlighted="true"] .cmd-arrow {
+    color: var(--text);
+    animation: cmd-arrow-beckon 900ms var(--ease-in-out) infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmd-arrow {
+    animation: none !important;
+  }
 }
 
 /* window controls (windows/linux) */
@@ -1240,6 +1336,51 @@ body,
 
 .wm-btn--link:hover {
   text-decoration: underline;
+}
+
+/* morphing button: text at rest, condenses to a plus on hover */
+
+.btn-morph {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-morph-label {
+  display: block;
+  max-width: 80px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: max-width 220ms var(--ease-out), opacity 150ms var(--ease-out);
+}
+
+.btn-morph-plus {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.7);
+  transition: opacity 150ms var(--ease-out), transform 220ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-morph:hover .btn-morph-label {
+    max-width: 14px; /* narrows toward square while staying tappable */
+    opacity: 0;
+  }
+
+  .btn-morph:hover .btn-morph-plus {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-morph-label,
+  .btn-morph-plus {
+    transition: opacity 150ms var(--ease-out);
+  }
 }
 
 /* sizes (compact-scaled from the source's 32/36/40) */
