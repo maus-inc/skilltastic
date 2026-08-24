@@ -493,6 +493,32 @@ pub fn delete_skill_dir(skill_path: &Path) -> std::io::Result<()> {
     fs::remove_dir_all(dir)
 }
 
+/// Renames a skill folder in place (keeping it inside `.disabled` when it
+/// is disabled). Link-aware via `move_skill_entry`, so a shared symlinked
+/// skill is re-linked, never followed. The caller must validate the name
+/// and collision-check first.
+pub fn rename_skill_dir(skill_path: &Path, new_name: &str) -> std::io::Result<PathBuf> {
+    let invalid = || std::io::Error::new(std::io::ErrorKind::NotFound, "invalid skill path");
+
+    let skill_dir = skill_path.parent().ok_or_else(invalid)?;
+    let parent = skill_dir.parent().ok_or_else(invalid)?;
+
+    let disabled = parent.file_name().and_then(|n| n.to_str()) == Some(DISABLED_DIR);
+    let skills_dir = if disabled {
+        parent.parent().ok_or_else(invalid)?
+    } else {
+        parent
+    };
+    let to = if disabled {
+        skills_dir.join(DISABLED_DIR).join(new_name)
+    } else {
+        skills_dir.join(new_name)
+    };
+
+    move_skill_entry(skill_dir, &to)?;
+    Ok(to.join(MANIFEST_FILE))
+}
+
 pub fn all_adapters() -> Vec<Box<dyn SkillAdapter>> {
     vec![
         Box::new(ClaudeAdapter),
@@ -714,5 +740,34 @@ mod tests {
 
         fs::remove_dir_all(&skills_dir).unwrap();
         fs::remove_dir_all(&real_dir).unwrap();
+    }
+
+    #[test]
+    fn rename_moves_the_folder_and_keeps_content() {
+        let skills_dir = temp_skills_dir("rename");
+        let manifest = skills_dir.join("demo").join(MANIFEST_FILE);
+        fs::write(&manifest, "---\nname: renamed\n---\n").unwrap();
+
+        let new_manifest = rename_skill_dir(&manifest, "renamed").expect("rename should succeed");
+        assert_eq!(new_manifest, skills_dir.join("renamed").join(MANIFEST_FILE));
+        assert!(new_manifest.is_file());
+        assert!(!skills_dir.join("demo").exists());
+        assert_eq!(fs::read_to_string(&new_manifest).unwrap(), "---\nname: renamed\n---\n");
+
+        fs::remove_dir_all(&skills_dir).unwrap();
+    }
+
+    #[test]
+    fn rename_keeps_a_disabled_skill_disabled() {
+        let skills_dir = temp_skills_dir("rename-disabled");
+        let manifest = skills_dir.join("demo").join(MANIFEST_FILE);
+        let disabled = toggle_enabled(&manifest, false).expect("disable should succeed");
+
+        let renamed = rename_skill_dir(&disabled, "renamed").expect("rename should succeed");
+        assert!(renamed.starts_with(skills_dir.join(DISABLED_DIR)));
+        assert_eq!(renamed, skills_dir.join(DISABLED_DIR).join("renamed").join(MANIFEST_FILE));
+        assert!(renamed.is_file());
+
+        fs::remove_dir_all(&skills_dir).unwrap();
     }
 }

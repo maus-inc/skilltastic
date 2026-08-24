@@ -114,6 +114,22 @@ the DNA", which is exactly how the ports work here.
   `name`/`description` edits propagate to the dashboard + tab label on
   save; preview width persisted; escaped YAML scalars decode correctly.
 
+## Editor polish (post-P3)
+
+- **Name → folder rename** — when the frontmatter `name` differs from the
+  folder after a save, the status bar offers a "rename folder" action
+  (the Agent Skills spec requires them to agree). `rename_skill` moves
+  the folder link-aware (a shared symlinked skill is re-linked, never
+  followed), keeps disabled skills inside `.disabled`, validates the name
+  with the same policy as `create_skill`, and rejects collisions. The
+  editor remounts at the new manifest id.
+- **Autosave** — an "auto" toggle (persisted) debounce-saves 1.2s after
+  the last keystroke; manual ⌘S stays. Save errors keep the dirty dot.
+- **Rust lint on the enable toggle** — `set_skill_enabled` now runs the
+  authoritative `lint_manifest` when enabling and refuses (rolling the
+  move back) if the manifest fails the hard policy, so a broken skill
+  can't be switched on.
+
 ## Linting & proactive suggestions (the interesting part)
 
 Three local sources, merged into one diagnostics stream:

@@ -127,6 +127,24 @@ describe("app click flows (preview mode)", () => {
     expect(document.querySelector(".ed-preview")?.textContent).toContain("Deploy checklist");
   }, 15000);
 
+  it("editor: autosave toggles and the rename affordance is gated", async () => {
+    const user = userEvent.setup();
+    await boot();
+    await user.click(screen.getAllByText("code-review")[0]);
+    await waitFor(() =>
+      expect(document.querySelector(".ed-crumb-title")?.textContent).toContain("code-review"),
+    );
+    // the autosave toggle is present and clickable
+    const auto = screen.getByLabelText("toggle autosave");
+    await user.click(auto);
+    expect(screen.getByLabelText("toggle autosave")).toBeTruthy();
+    // rename folder is NOT offered while name still matches the folder
+    expect(screen.queryByLabelText("rename folder")).toBeNull();
+    // clean close still works
+    await user.click(screen.getByLabelText("close code-review"));
+    await waitFor(() => expect(document.querySelector(".ed-crumb-title")).toBeNull());
+  }, 15000);
+
   it("editor: diff view renders a read-only changes overlay", async () => {
     const user = userEvent.setup();
     await boot();

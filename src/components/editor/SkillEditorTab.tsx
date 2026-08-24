@@ -44,11 +44,15 @@ interface SkillEditorTabProps {
   onDelete: (skill: Skill) => void;
   /** fires after a successful save, with the freshly-parsed name/description */
   onSaved: (skill: Skill) => void;
+  /** fires after a folder rename, with the updated skill (new id/path) */
+  onRenamed: (skill: Skill) => void;
   tabId: string;
 }
 
 const PREVIEW_KEY = "skilltastic:editor-preview";
 const PREVIEW_PCT_KEY = "skilltastic:editor-preview-pct";
+const AUTOSAVE_KEY = "skilltastic:editor-autosave";
+const AUTOSAVE_DELAY_MS = 1200;
 
 /**
  * The SKILL.md workbench: CodeMirror 6 engine under a VS Code-style
@@ -63,6 +67,7 @@ export function SkillEditorTab({
   registerApi,
   onDelete,
   onSaved,
+  onRenamed,
   tabId,
 }: SkillEditorTabProps) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -104,6 +109,16 @@ export function SkillEditorTab({
   const [resourcePaths, setResourcePaths] = useState<string[]>([]);
   const [activeResource, setActiveResource] = useState<string | null>(null);
   const [resourceContent, setResourceContent] = useState("");
+  const [savedName, setSavedName] = useState<string | null>(null);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [autoSave, setAutoSave] = useState(() => {
+    try {
+      return localStorage.getItem(AUTOSAVE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
   const shellRef = useRef<HTMLDivElement>(null);
 
   const folderName = useMemo(() => {
@@ -251,12 +266,50 @@ export function SkillEditorTab({
 
     // propagate name/description edits so the dashboard + tab label refresh
     const fields = parseFrontmatterFields(view.state.doc);
+    setSavedName(fields.name || null);
     onSaved({
       ...skill,
       name: fields.name || skill.name,
       description: fields.description ?? skill.description,
     });
   };
+
+  /** Rename the skill folder to match the frontmatter `name`. */
+  async function handleRename() {
+    if (!savedName || savedName === folderName || renaming) return;
+    setRenaming(true);
+    setRenameError(null);
+    try {
+      const updated = await api.renameSkill(skill.id, savedName);
+      onRenamed(updated);
+    } catch (e) {
+      setRenameError(String(e));
+      setRenaming(false);
+    }
+  }
+
+  const toggleAutoSave = () => {
+    setAutoSave((on) => {
+      const next = !on;
+      try {
+        localStorage.setItem(AUTOSAVE_KEY, next ? "1" : "0");
+      } catch {
+        /* preference just won't persist */
+      }
+      return next;
+    });
+  };
+
+  // ---- autosave (debounced after the last keystroke) ----
+  useEffect(() => {
+    if (!autoSave || docVersion === 0) return;
+    const view = viewRef.current;
+    if (!view || view.state.doc.toString() === savedTextRef.current) return;
+    const t = window.setTimeout(() => {
+      void saveFnRef.current().catch(() => {});
+    }, AUTOSAVE_DELAY_MS);
+    return () => window.clearTimeout(t);
+  }, [docVersion, autoSave]);
 
   openEditorRef.current = (editor: "code" | "zed") => {
     openInExternalEditor(editor, skill.path, status.line, status.col).catch((e) => {
@@ -518,6 +571,28 @@ export function SkillEditorTab({
             {strictIssues.length} policy
           </span>
         )}
+        {savedName && savedName !== folderName && !dirty && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="btn-morph"
+            onClick={() => void handleRename()}
+            disabled={renaming}
+            aria-label="rename folder"
+            data-tip={`rename the folder to “${savedName}” so it matches the name field`}
+            data-tip-side="top"
+          >
+            <span className="btn-morph-label">{renaming ? "renaming…" : "rename folder"}</span>
+            <span className="btn-morph-icon">
+              <FolderIcon size={14} />
+            </span>
+          </Button>
+        )}
+        {renameError && (
+          <span className="ed-status-item error" title={renameError}>
+            rename failed
+          </span>
+        )}
         <span className="footer-spacer" />
         {saveError && (
           <span className="ed-status-item error" title={saveError}>
@@ -567,6 +642,17 @@ export function SkillEditorTab({
           title="diff against the saved state"
         >
           diff
+        </Button>
+        <Button
+          variant={autoSave ? "secondary" : "ghost"}
+          size="sm"
+          className={autoSave ? "is-active" : undefined}
+          onClick={toggleAutoSave}
+          aria-label="toggle autosave"
+          data-tip={autoSave ? "autosave on" : "autosave off"}
+          data-tip-side="top"
+        >
+          auto
         </Button>
         <TimedUndoAction
           label="delete"

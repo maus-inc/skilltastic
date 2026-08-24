@@ -1,4 +1,4 @@
-use super::{find_skill_by_manifest, manageable_manifest};
+use super::{create_skill, find_skill_by_manifest, manageable_manifest};
 use crate::projects;
 use crate::skills::{self, tools::ToolEntry, Skill};
 use std::fs;
@@ -29,7 +29,57 @@ pub fn set_skill_enabled(app: AppHandle, id: String, enabled: bool) -> Result<Sk
     let new_manifest =
         skills::toggle_enabled(&managed.raw, enabled).map_err(|e| e.to_string())?;
 
+    // authoritative lint on the ENABLE path: refuse to switch on a skill
+    // whose manifest fails the hard policy (the agent would load garbage).
+    if enabled {
+        if let Ok(raw) = fs::read_to_string(&managed.canonical) {
+            let folder = managed
+                .raw
+                .parent()
+                .and_then(|d| d.file_name())
+                .and_then(|n| n.to_str())
+                .unwrap_or("");
+            let errors: Vec<String> = crate::skills::lint_manifest(&raw, folder)
+                .into_iter()
+                .filter(|d| d.severity == "error")
+                .map(|d| d.message)
+                .collect();
+            if !errors.is_empty() {
+                // the move already happened — move it back so a rejected
+                // enable leaves the skill disabled, exactly where it was
+                let _ = skills::toggle_enabled(&new_manifest, false);
+                return Err(format!("cannot enable: {}", errors.join("; ")));
+            }
+        }
+    }
+
     find_skill_by_manifest(&app, &new_manifest).ok_or_else(|| "skill not found after toggle".into())
+}
+
+/// Renames a skill's folder to match its frontmatter `name` (the Agent
+/// Skills spec requires them to agree). Link-aware and collision-checked.
+#[tauri::command]
+pub fn rename_skill(app: AppHandle, id: String, new_name: String) -> Result<Skill, String> {
+    let new_name = new_name.trim();
+    create_skill::validate_skill_folder_name(new_name)?;
+
+    let managed = manageable_manifest(&app, Path::new(&id))?;
+    // collision: a folder with the target name must not already exist
+    let current_dir = managed.raw.parent().ok_or("invalid skill path")?;
+    let parent = current_dir.parent().ok_or("invalid skill path")?;
+    let disabled = parent.file_name().and_then(|n| n.to_str()) == Some(".disabled");
+    let skills_root = if disabled { parent.parent().ok_or("invalid skill path")? } else { parent };
+    let target_dir = if disabled {
+        skills_root.join(".disabled").join(new_name)
+    } else {
+        skills_root.join(new_name)
+    };
+    if target_dir.exists() {
+        return Err(format!("a skill named '{new_name}' already exists in this folder"));
+    }
+
+    let new_manifest = skills::rename_skill_dir(&managed.raw, new_name).map_err(|e| e.to_string())?;
+    find_skill_by_manifest(&app, &new_manifest).ok_or_else(|| "skill not found after rename".into())
 }
 
 #[tauri::command]

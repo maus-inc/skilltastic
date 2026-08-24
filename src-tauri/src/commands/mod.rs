@@ -29,13 +29,14 @@ pub use projects::{
 pub use skills::{
     __cmd__delete_skill, __cmd__lint_skill_content, __cmd__list_skill_resources, __cmd__list_skills,
     __cmd__list_tool_entries, __cmd__read_skill_content, __cmd__read_skill_resource,
-    __cmd__set_skill_enabled, __cmd__write_skill_content, __tauri_command_name_delete_skill,
-    __tauri_command_name_lint_skill_content, __tauri_command_name_list_skill_resources,
-    __tauri_command_name_list_skills, __tauri_command_name_list_tool_entries,
-    __tauri_command_name_read_skill_content, __tauri_command_name_read_skill_resource,
+    __cmd__rename_skill, __cmd__set_skill_enabled, __cmd__write_skill_content,
+    __tauri_command_name_delete_skill, __tauri_command_name_lint_skill_content,
+    __tauri_command_name_list_skill_resources, __tauri_command_name_list_skills,
+    __tauri_command_name_list_tool_entries, __tauri_command_name_read_skill_content,
+    __tauri_command_name_read_skill_resource, __tauri_command_name_rename_skill,
     __tauri_command_name_set_skill_enabled, __tauri_command_name_write_skill_content,
     delete_skill, lint_skill_content, list_skill_resources, list_skills, list_tool_entries,
-    read_skill_content, read_skill_resource, set_skill_enabled, write_skill_content,
+    read_skill_content, read_skill_resource, rename_skill, set_skill_enabled, write_skill_content,
 };
 
 const MANIFEST_FILE: &str = "SKILL.md";

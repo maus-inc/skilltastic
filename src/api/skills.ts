@@ -22,6 +22,11 @@ export const skillsApi = {
   writeSkillContent(id: string, content: string): Promise<void> {
     return invoke("write_skill_content", { id, content });
   },
+  /** Renames a skill's folder to match its frontmatter name; returns the
+   *  updated skill (new manifest id/path). */
+  renameSkill(id: string, newName: string): Promise<Skill> {
+    return invoke("rename_skill", { id, newName });
+  },
   /** Authoritative frontmatter/markdown checks — the Rust side's second
    *  opinion over a just-saved (or in-flight) manifest. */
   lintSkillContent(id: string, content: string): Promise<SkillDiagnostic[]> {

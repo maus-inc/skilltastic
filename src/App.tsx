@@ -185,6 +185,25 @@ function App() {
     }
   }
 
+  /** After a folder rename the manifest id changes — re-point the editor
+   *  and its tab (remount re-reads from the new path), then refresh. */
+  function handleEditorRenamed(renamed: Skill) {
+    const oldId = editorSkill?.id;
+    setEditorSkill(renamed);
+    setTabs((prev) =>
+      prev.map((t) =>
+        t.kind === "editor" && t.skill.id === oldId
+          ? { id: editorTabId(renamed.id), kind: "editor", skill: renamed, label: renamed.name }
+          : t,
+      ),
+    );
+    void global.refresh();
+    if (renamed.scope === "project") {
+      void projects.refresh();
+      projectView.reload();
+    }
+  }
+
   /** Title-bar tab clicks route back through the normal view switches. */
   function activateTab(id: string) {
     if (id === HOME_TAB_ID) return selectAll();
@@ -400,6 +419,7 @@ function App() {
             registerApi={registerApi}
             onDelete={deleteFromEditor}
             onSaved={handleEditorSaved}
+            onRenamed={handleEditorRenamed}
           />
         ) : (
           <>

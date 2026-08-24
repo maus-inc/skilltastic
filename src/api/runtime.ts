@@ -311,6 +311,26 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (content === undefined) throw new Error("unknown resource");
     return content;
   },
+  rename_skill: ({ id, newName }) => {
+    const index = skills.findIndex((s) => s.id === id);
+    if (index === -1) throw new Error("unknown skill");
+    const skill = skills[index];
+    const n = String(newName ?? "").trim();
+    if (!n || n.length > 64 || !NAME_PATTERN.test(n)) throw new Error(`invalid skill name: "${n}"`);
+    const segs = skill.path.split("/");
+    const isDisabled = segs[segs.length - 2] === ".disabled";
+    const base = segs.slice(0, -1).join("/");
+    const nextDir = isDisabled ? `${segs.slice(0, -2).join("/")}/.disabled/${n}` : `${base}/${n}`;
+    if (skills.some((s) => s.path === nextDir)) throw new Error(`a skill named "${n}" already exists in this folder`);
+    const content = contents.get(skill.id);
+    const next: Skill = { ...skill, name: n, path: nextDir, id: `${nextDir}/SKILL.md` };
+    skills[index] = next;
+    if (content !== undefined) {
+      contents.delete(skill.id);
+      contents.set(next.id, content);
+    }
+    return next;
+  },
   create_skill: ({ tool, scope, projectPath, name, description }) => {
     const t = String(tool) as Skill["tool"];
     const n = String(name ?? "").trim();

@@ -19,8 +19,9 @@ const WINDOWS_RESERVED_NAMES: &[&str] = &[
 /// Folder-name policy for new skills: non-empty, no surrounding
 /// whitespace, at most 64 chars, ASCII letters/digits plus `_`, `-` and
 /// `.`, no leading dot, and no reserved name. Deliberately tight so one
-/// folder is safe on every platform the app ships on.
-fn validate_skill_folder_name(name: &str) -> Result<(), String> {
+/// folder is safe on every platform the app ships on. Shared with
+/// `rename_skill`, which must not loosen it.
+pub(crate) fn validate_skill_folder_name(name: &str) -> Result<(), String> {
     if name.trim() != name || name.is_empty() {
         return Err("skill name is empty or has surrounding whitespace".into());
     }

@@ -19,6 +19,7 @@ pub fn run() {
             commands::lint_skill_content,
             commands::list_skill_resources,
             commands::read_skill_resource,
+            commands::rename_skill,
             commands::create_skill,
             commands::list_detected_projects,
             commands::refresh_detected_projects,

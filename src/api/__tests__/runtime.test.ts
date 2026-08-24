@@ -110,6 +110,36 @@ describe("preview invoke fixtures", () => {
     expect(none).toEqual([]);
   });
 
+  it("renames a skill folder and preserves its saved content", async () => {
+    const created = await invoke<Skill>("create_skill", {
+      tool: "claude",
+      scope: "user",
+      projectPath: null,
+      name: "rename-me",
+      description: "before rename",
+    });
+    await invoke("write_skill_content", { id: created.id, content: "---\nname: renamed\n---\n\n# renamed\n" });
+
+    const renamed = await invoke<Skill>("rename_skill", { id: created.id, newName: "renamed" });
+    expect(renamed.name).toBe("renamed");
+    expect(renamed.path.endsWith("/renamed")).toBe(true);
+    expect(renamed.id.endsWith("/renamed/SKILL.md")).toBe(true);
+
+    // content survived the move
+    const content = await invoke<string>("read_skill_content", { id: renamed.id });
+    expect(content).toContain("---\nname: renamed");
+
+    // the old id no longer resolves
+    await expect(invoke("read_skill_content", { id: created.id })).rejects.toThrow();
+  });
+
+  it("rename rejects collisions and invalid names", async () => {
+    const skills = await invoke<Skill[]>("list_skills");
+    const target = skills[0];
+    await expect(invoke("rename_skill", { id: target.id, newName: target.name })).rejects.toThrow(/already exists/);
+    await expect(invoke("rename_skill", { id: target.id, newName: "bad/name" })).rejects.toThrow(/invalid skill name/);
+  });
+
   it("copilot project skills land where the Rust adapter looks", async () => {
     const projects = await invoke<ProjectInfo[]>("list_projects");
     const created = await invoke<Skill>("create_skill", {
