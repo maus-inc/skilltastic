@@ -7,7 +7,10 @@ import { HOME_TAB_ID, projectTabId, toolTabId, type TitleTab } from "../../types
 import { CommandMenu, type CommandEntry } from "../ui/CommandMenu";
 import {
   ArrowUpRightIcon,
+  CheckIcon,
   CloseIcon,
+  EditIcon,
+  EyeIcon,
   FolderIcon,
   FolderPlusIcon,
   GithubIcon,
@@ -39,6 +42,10 @@ interface TitleBarProps {
   projects: { path: string; name: string }[];
   onOpenTool: (toolId: string) => void;
   onOpenProject: (path: string) => void;
+  /** editor-tab palette actions, present while an editor tab is active */
+  editorActions?: { save: () => void; togglePreview: () => void } | null;
+  /** tab id → unsaved edits, renders the dirty dot */
+  dirtyTabs?: Record<string, boolean>;
 }
 
 export function TitleBar({
@@ -53,6 +60,8 @@ export function TitleBar({
   projects,
   onOpenTool,
   onOpenProject,
+  editorActions = null,
+  dirtyTabs = {},
 }: TitleBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
@@ -97,6 +106,26 @@ export function TitleBar({
   // views first — the menu is mostly a switcher between the modes that
   // appear as tabs; the one-shot actions live at the bottom
   const menuEntries: CommandEntry[] = [
+    ...(editorActions
+      ? [
+          {
+            id: "ed:save",
+            label: "save skill",
+            group: "editor",
+            icon: <CheckIcon size={12} />,
+            hint: "⌘S",
+            action: editorActions.save,
+          },
+          {
+            id: "ed:preview",
+            label: "toggle preview",
+            group: "editor",
+            icon: <EyeIcon size={12} />,
+            hint: "⌘⇧V",
+            action: editorActions.togglePreview,
+          },
+        ]
+      : []),
     ...tools.map((tool) => ({
       id: `tool:${tool.id}`,
       label: tool.label,
@@ -188,6 +217,8 @@ export function TitleBar({
             <span className="tb-tab-icon">
               {tab.kind === "project" ? (
                 <FolderIcon size={12} />
+              ) : tab.kind === "editor" ? (
+                <EditIcon size={12} />
               ) : (
                 <ToolTabMark
                   hover={hoveredTab === tab.id}
@@ -197,6 +228,7 @@ export function TitleBar({
               )}
             </span>
             <span className="tb-tab-label">{tab.label}</span>
+            {dirtyTabs[tab.id] && <span className="tb-tab-dirty" aria-label="unsaved changes" />}
             <button type="button"
               className="tb-tab-close"
               onClick={(e) => {
@@ -204,6 +236,7 @@ export function TitleBar({
                 onCloseTab(tab.id);
               }}
               title="close tab"
+              aria-label={`close ${tab.label}`}
             >
               <CloseIcon size={12} />
             </button>

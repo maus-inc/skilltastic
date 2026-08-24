@@ -2371,3 +2371,143 @@ body,
 .create-modal .modal-footer {
   flex-shrink: 0;
 }
+
+/* ---------- skill editor workbench (CodeMirror 6, VS Code-style chrome) ---------- */
+
+.ed-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.ed-crumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.ed-crumb-title {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ed-crumb-file {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.ed-readers {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.ed-reader-mark {
+  width: 12px;
+  height: 12px;
+  opacity: 0.85;
+}
+
+.ed-crumb-path {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.ed-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.ed-cm {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ed-cm .cm-editor {
+  height: 100%;
+  outline: none;
+}
+
+.ed-divider {
+  width: 5px;
+  cursor: col-resize;
+  background: transparent;
+  border-left: 1px solid var(--border);
+  flex-shrink: 0;
+  transition: background 150ms var(--ease-out);
+}
+
+.ed-divider:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ed-preview {
+  width: var(--preview-pct, 42%);
+  flex: none;
+  min-height: 0;
+  border-left: none;
+}
+
+.ed-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 12px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: var(--streak);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.ed-status-item.warn {
+  color: #f59e0b;
+}
+
+.ed-status-item.dirty {
+  color: #fca5a5;
+}
+
+.ed-status .footer-spacer {
+  flex: 1;
+}
+
+/* dirty dot on editor tabs */
+.tb-tab-dirty {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fca5a5;
+  flex-shrink: 0;
+}
+
+.unsaved-body {
+  padding: 16px;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.unsaved-modal {
+  width: min(420px, calc(100vw - 32px));
+}

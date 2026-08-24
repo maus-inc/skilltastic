@@ -54,8 +54,42 @@ gzipped and React-rendered editor chrome).
   want their daily driver on a file (scoped command allowlist, explicit
   user action — compatible with the local-only principle).
 
-**Decision: CodeMirror 6**, Monaco reserved as a fallback only if we
-ever need real language-server IntelliSense (we don't for markdown+YAML).
+**Decision (confirmed with the user): CodeMirror 6**, Monaco rejected
+(5 MB, unthemable chrome), Zed kept as reference only. The editor is a
+**workbench**, not a minimal textarea-in-modal: `EditorModal` is
+retired; skills open as `kind: "editor"` tabs in the title bar.
+
+## What shipped (P1-max)
+
+- `components/editor/`: `SkillEditorTab` (breadcrumb bar, CM6 surface,
+  spring-drag split preview reusing `renderMarkdown`, status bar),
+  `theme.ts` (token-mapped dark theme + markdown/frontmatter highlight
+  style), `lint.ts`, `completion.ts`, `frontmatter.ts` (tinted
+  frontmatter block + `key:`/`---` marks via decorations).
+- Chrome ports in the Watermelon family: tabs (existing), breadcrumb +
+  status bar (new, our tokens), combobox palette gains editor actions
+  (save ⌘S, toggle preview ⌘⇧V), time-undo handles delete from the
+  status bar.
+- Lint sources: frontmatter policy parity (Rust stays authoritative),
+  skill-craft heuristics (trigger-first descriptions, folder/name
+  match, ≤1024, no angle brackets, body budget), markdown health with
+  mechanical quick-fixes (trim trailing ws, collapse blanks).
+- Completions: frontmatter keys + "Use when …" snippet.
+- Save discipline: ⌘S, dirty dot on the tab, unsaved-close guard
+  (`UnsavedCloseModal`: keep editing / discard / save & close).
+- Everything local, per the no-telemetry principle.
+
+Watermelon registry dig (2026-08): 600+ components at
+`registry.watermelon.sh/r/<name>.json`; the editor chrome reuses the
+same ported family (button, switch, badge, combobox-1, time-undo,
+tabs, breadcrumb patterns) refined onto our tokens rather than copied
+verbatim — Watermelon's own thesis is "tweak the variables, inherit
+the DNA", which is exactly how the ports work here.
+
+## Later (P2/P3, unchanged)
+
+Rust-side markdownlint second opinion, diff-on-disk view, "Open in
+Zed/VS Code" shell escape, reference-file tree for level-3 resources.
 
 ## Linting & proactive suggestions (the interesting part)
 

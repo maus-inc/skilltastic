@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AddProjectModal } from "./components/modals/AddProjectModal";
 import { CreateSkillModal } from "./components/modals/CreateSkillModal";
-import { EditorModal } from "./components/modals/EditorModal";
+import { UnsavedCloseModal } from "./components/modals/UnsavedCloseModal";
 import { ProjectsModal } from "./components/modals/ProjectsModal";
+import { SkillEditorTab, type EditorTabApi } from "./components/editor/SkillEditorTab";
+import { IN_TAURI } from "./api/runtime";
 import { Sidebar } from "./components/layout/Sidebar";
 import { SkillList } from "./components/skills/SkillList";
 import { TitleBar } from "./components/layout/TitleBar";
@@ -13,7 +15,7 @@ import { useProjects } from "./hooks/useProjects";
 import { useProjectSkills } from "./hooks/useProjectSkills";
 import { filterSkills } from "./utils/filterSkills";
 import { provider } from "./components/ui/providers";
-import { HOME_TAB_ID, projectTabId, toolTabId } from "./types";
+import { HOME_TAB_ID, editorTabId, projectTabId, toolTabId } from "./types";
 import type { AgentTool, ProjectInfo, Skill, TitleTab, ToolEntry, View } from "./types";
 import "./App.css";
 
@@ -31,7 +33,10 @@ function App() {
     }
   });
   const [query, setQuery] = useState("");
-  const [editing, setEditing] = useState<Skill | null>(null);
+  const [editorSkill, setEditorSkill] = useState<Skill | null>(null);
+  const [dirtyTabs, setDirtyTabs] = useState<Record<string, boolean>>({});
+  const [pendingClose, setPendingClose] = useState<TitleTab | null>(null);
+  const editorApis = useRef(new Map<string, EditorTabApi>());
   const [addingProject, setAddingProject] = useState(false);
   const [creatingSkill, setCreatingSkill] = useState(false);
   const [showingAllProjects, setShowingAllProjects] = useState(false);
@@ -58,12 +63,27 @@ function App() {
       : global.toolEntries.find((t) => t.id === activeToolId) ?? null;
 
   /** Which title-bar tab mirrors the current view. */
-  const activeTabId =
-    view.kind === "project"
+  const activeTabId = editorSkill
+    ? editorTabId(editorSkill.id)
+    : view.kind === "project"
       ? projectTabId(view.project.path)
       : activeToolId === ALL
         ? HOME_TAB_ID
         : toolTabId(activeToolId);
+
+  const registerApi = useCallback((id: string, api: EditorTabApi | null) => {
+    if (api) editorApis.current.set(id, api);
+    else editorApis.current.delete(id);
+    // preview-only seam so the click-through suite can drive the editor
+    if (!IN_TAURI) {
+      (window as unknown as { __skilltasticEditorApis?: Map<string, EditorTabApi> }).__skilltasticEditorApis =
+        editorApis.current;
+    }
+  }, []);
+
+  const handleDirtyChange = useCallback((id: string, dirty: boolean) => {
+    setDirtyTabs((prev) => (prev[id] === dirty ? prev : { ...prev, [id]: dirty }));
+  }, []);
 
   useEffect(() => {
     skillListRef.current?.scrollTo(0, 0);
@@ -74,6 +94,7 @@ function App() {
   }
 
   function selectAll() {
+    setEditorSkill(null);
     setView({ kind: "global" });
     setActiveToolId(ALL);
   }
@@ -81,14 +102,29 @@ function App() {
   function selectTool(toolId: string) {
     const entry = global.toolEntries.find((t) => t.id === toolId);
     ensureTab({ id: toolTabId(toolId), kind: "tool", toolId, label: entry?.label ?? toolId });
+    setEditorSkill(null);
     setView({ kind: "global" });
     setActiveToolId(toolId);
   }
 
   function openProject(project: ProjectInfo) {
     ensureTab({ id: projectTabId(project.path), kind: "project", project, label: project.name });
+    setEditorSkill(null);
     setView({ kind: "project", project });
     projects.touch(project); // records the open for latest-first ordering
+  }
+
+  /** Skills open as editor tabs in the title bar, not modals. */
+  function openEditor(skill: Skill) {
+    ensureTab({ id: editorTabId(skill.id), kind: "editor", skill, label: skill.name });
+    setEditorSkill(skill);
+  }
+
+  async function deleteFromEditor(skill: Skill) {
+    await global.remove(skill);
+    const id = editorTabId(skill.id);
+    setTabs((prev) => prev.filter((t) => t.id !== id));
+    setEditorSkill((cur) => (cur?.id === skill.id ? null : cur));
   }
 
   /** Title-bar tab clicks route back through the normal view switches. */
@@ -97,9 +133,13 @@ function App() {
     const tab = tabs.find((t) => t.id === id);
     if (!tab) return;
     if (tab.kind === "tool") {
+      setEditorSkill(null);
       setView({ kind: "global" });
       setActiveToolId(tab.toolId);
+    } else if (tab.kind === "editor") {
+      setEditorSkill(tab.skill);
     } else {
+      setEditorSkill(null);
       setView({ kind: "project", project: tab.project });
       projects.touch(tab.project);
     }
@@ -109,14 +149,37 @@ function App() {
   function closeTab(id: string) {
     const index = tabs.findIndex((t) => t.id === id);
     if (index === -1) return;
+    const tab = tabs[index];
+    // dirty editor tabs go through the unsaved-changes guard first
+    if (tab.kind === "editor" && dirtyTabs[id]) {
+      setPendingClose(tab);
+      return;
+    }
+    doCloseTab(id);
+  }
+
+  function doCloseTab(id: string) {
+    const index = tabs.findIndex((t) => t.id === id);
+    if (index === -1) return;
+    const tab = tabs[index];
     const remaining = tabs.filter((t) => t.id !== id);
     setTabs(remaining);
+    setDirtyTabs((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    if (tab.kind === "editor") {
+      setEditorSkill((cur) => (cur?.id === tab.skill.id ? null : cur));
+    }
     if (id !== activeTabId) return;
     const neighbour = remaining[index - 1] ?? remaining[index] ?? null;
     if (!neighbour) return selectAll();
     if (neighbour.kind === "tool") {
       setView({ kind: "global" });
       setActiveToolId(neighbour.toolId);
+    } else if (neighbour.kind === "editor") {
+      setEditorSkill(neighbour.skill);
     } else {
       setView({ kind: "project", project: neighbour.project });
     }
@@ -132,11 +195,6 @@ function App() {
     const project = await projects.pickAndAdd();
     if (project) openProject(project);
     return project;
-  }
-
-  async function removeProjectSkill(skill: Skill) {
-    await projectView.remove(skill);
-    await projects.refresh(); // keep sidebar skill-count badges honest
   }
 
   async function forgetProject(project: ProjectInfo) {
@@ -202,6 +260,16 @@ function App() {
           const project = projects.projects.find((p) => p.path === path);
           if (project) openProject(project);
         }}
+        editorActions={
+          editorSkill
+            ? {
+                save: () => void editorApis.current.get(editorTabId(editorSkill.id))?.save(),
+                togglePreview: () =>
+                  editorApis.current.get(editorTabId(editorSkill.id))?.togglePreview(),
+              }
+            : null
+        }
+        dirtyTabs={dirtyTabs}
       />
       <div className="app">
       <Sidebar
@@ -225,45 +293,68 @@ function App() {
       />
 
       <main className="main">
-        <Topbar
-          title={title}
-          subtitle={subtitle}
-          folders={view.kind === "global" ? activeTool?.folders : undefined}
-          query={query}
-          onQueryChange={setQuery}
-          onForgetProject={view.kind === "project" ? () => forgetProject(view.project) : undefined}
-          onNewSkill={() => setCreatingSkill(true)}
-        />
+        {editorSkill ? (
+          <SkillEditorTab
+            key={editorSkill.id}
+            tabId={editorTabId(editorSkill.id)}
+            skill={editorSkill}
+            toolEntries={global.toolEntries}
+            onDirtyChange={handleDirtyChange}
+            registerApi={registerApi}
+            onDelete={deleteFromEditor}
+          />
+        ) : (
+          <>
+            <Topbar
+              title={title}
+              subtitle={subtitle}
+              folders={view.kind === "global" ? activeTool?.folders : undefined}
+              query={query}
+              onQueryChange={setQuery}
+              onForgetProject={view.kind === "project" ? () => forgetProject(view.project) : undefined}
+              onNewSkill={() => setCreatingSkill(true)}
+            />
 
-        <div className={`skill-list ${viewMode === "cards" && currentSkills.length > 0 ? "skill-list--cards" : ""}`} ref={skillListRef}>
-          {view.kind === "global" ? (
-            <SkillList
-              skills={filteredGlobal}
-              toolEntries={global.toolEntries}
-              emptyHint="No skills found."
-              onToggle={global.toggle}
-              onOpen={setEditing}
-            />
-          ) : projectView.loading ? (
-            <div className="empty-state">loading...</div>
-          ) : (
-            <SkillList
-              skills={filteredProjectSkills}
-              toolEntries={global.toolEntries}
-              emptyHint="No skills found in this project."
-              onToggle={projectView.toggle}
-              onOpen={setEditing}
-            />
-          )}
-        </div>
+            <div className={`skill-list ${viewMode === "cards" && currentSkills.length > 0 ? "skill-list--cards" : ""}`} ref={skillListRef}>
+              {view.kind === "global" ? (
+                <SkillList
+                  skills={filteredGlobal}
+                  toolEntries={global.toolEntries}
+                  emptyHint="No skills found."
+                  onToggle={global.toggle}
+                  onOpen={openEditor}
+                />
+              ) : projectView.loading ? (
+                <div className="empty-state">loading...</div>
+              ) : (
+                <SkillList
+                  skills={filteredProjectSkills}
+                  toolEntries={global.toolEntries}
+                  emptyHint="No skills found in this project."
+                  onToggle={projectView.toggle}
+                  onOpen={openEditor}
+                />
+              )}
+            </div>
+          </>
+        )}
       </main>
 
-      {editing && (
-        <EditorModal
-          skill={editing}
-          toolEntries={global.toolEntries}
-          onClose={() => setEditing(null)}
-          onDelete={view.kind === "global" ? global.remove : removeProjectSkill}
+      {pendingClose && pendingClose.kind === "editor" && (
+        <UnsavedCloseModal
+          skillName={pendingClose.skill.name}
+          onCancel={() => setPendingClose(null)}
+          onDiscard={() => {
+            const id = pendingClose.id;
+            setPendingClose(null);
+            doCloseTab(id);
+          }}
+          onSaveAndClose={async () => {
+            const id = pendingClose.id;
+            await editorApis.current.get(id)?.save();
+            setPendingClose(null);
+            doCloseTab(id);
+          }}
         />
       )}
 
@@ -286,7 +377,7 @@ function App() {
               await projects.refresh(); // keep sidebar skill-count badges honest
               projectView.reload();
             }
-            setEditing(skill); // the instructions are the user's to write
+            openEditor(skill); // the instructions are the user's to write
           }}
         />
       )}

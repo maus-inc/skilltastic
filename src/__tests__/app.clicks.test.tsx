@@ -31,22 +31,45 @@ describe("app click flows (preview mode)", () => {
     expect(screen.getAllByText("commit-style").length).toBeGreaterThan(0);
   });
 
-  it("clicking a card opens the editor; closing returns to the list", async () => {
+  it("clicking a card opens an editor tab; closing the tab returns to the list", async () => {
     const user = userEvent.setup();
     await boot();
     await user.click(screen.getAllByText("code-review")[0]);
+    // the workbench opens as a title-bar tab with a breadcrumb
+    await waitFor(() => expect(document.querySelector(".ed-crumb-title")?.textContent).toContain("code-review"));
+    expect(screen.getByLabelText("close code-review")).toBeTruthy();
+    await user.click(screen.getByLabelText("close code-review"));
     await waitFor(() =>
-      expect(screen.getByText("code-review / SKILL.md")).toBeTruthy(),
+      expect(document.querySelector(".ed-crumb-title")).toBeNull(),
     );
-    // list stays mounted behind the modal
-    expect(screen.getAllByText("commit-style").length).toBeGreaterThan(0);
-    // Escape closes the modal (title-bar window controls share the
-    // "close" accessible name, so keyboard out instead of clicking it)
+    expect(screen.getAllByText("code-review").length).toBeGreaterThan(0);
+  }, 15000);
+
+  it("editor: chrome renders — status, live preview, palette actions, clean close", async () => {
+    // (dispatching whole-doc replacements through CodeMirror is not
+    // reliable in jsdom; the dirty/save/guard path is exercised in the
+    // real browser — here we assert the workbench chrome)
+    const user = userEvent.setup();
+    await boot();
+    await user.click(screen.getAllByText("docs-sync")[0]);
+    await waitFor(() =>
+      expect(document.querySelector(".ed-crumb-title")?.textContent).toContain("docs-sync"),
+    );
+    expect(screen.getByText("saved")).toBeTruthy();
+    expect(screen.getByText(/Ln 1, Col 1/)).toBeTruthy();
+    // live preview renders the skill body
+    await waitFor(() =>
+      expect(document.querySelector(".ed-preview")?.textContent).toContain("Keep docs in sync"),
+    );
+    // the palette offers editor actions while an editor tab is active
+    await user.click(screen.getByLabelText("menu"));
+    await waitFor(() => expect(document.querySelector(".cmd")).toBeTruthy());
+    expect(within(document.querySelector(".cmd") as HTMLElement).getByText("save skill")).toBeTruthy();
     await user.keyboard("{Escape}");
-    await waitFor(() =>
-      expect(screen.queryByText("code-review / SKILL.md")).toBeNull(),
-    );
-  });
+    // a clean tab closes without the unsaved guard
+    await user.click(screen.getByLabelText("close docs-sync"));
+    await waitFor(() => expect(document.querySelector(".ed-crumb-title")).toBeNull());
+  }, 15000);
 
   it("clicking a switch toggles the skill and the card stays visible", async () => {
     const user = userEvent.setup();
@@ -110,20 +133,20 @@ describe("app click flows (preview mode)", () => {
     const user = userEvent.setup();
     await boot();
     await user.click(screen.getAllByText("commit-style")[0]);
-    await waitFor(() => expect(screen.getByText("commit-style / SKILL.md")).toBeTruthy());
+    await waitFor(() => expect(document.querySelector(".ed-crumb-title")?.textContent).toContain("commit-style"));
     await user.click(screen.getByLabelText("delete"));
     // armed: the way out is visible and the skill is untouched
     await waitFor(() => expect(screen.getByLabelText(/cancel — \d+ seconds/)).toBeTruthy());
     await user.click(screen.getByLabelText(/cancel — \d+ seconds/));
     await waitFor(() => expect(screen.getByLabelText("delete")).toBeTruthy());
-    expect(screen.getByText("commit-style / SKILL.md")).toBeTruthy();
+    expect(document.querySelector(".ed-crumb-title")?.textContent).toContain("commit-style");
   }, 15000);
 
   it("delete flow: expiry reveals the execute button; clicking it deletes", async () => {
     const user = userEvent.setup();
     await boot();
     await user.click(screen.getAllByText("commit-style")[0]);
-    await waitFor(() => expect(screen.getByText("commit-style / SKILL.md")).toBeTruthy());
+    await waitFor(() => expect(document.querySelector(".ed-crumb-title")?.textContent).toContain("commit-style"));
     await user.click(screen.getByLabelText("delete"));
     await waitFor(() => expect(screen.getByLabelText(/cancel — \d+ seconds/)).toBeTruthy());
     // expiry never commits by itself — it reveals the explicit execute button
@@ -131,25 +154,9 @@ describe("app click flows (preview mode)", () => {
       timeout: 9000,
     });
     await user.click(screen.getByLabelText("confirm delete"));
-    await waitFor(() => expect(screen.queryByText("commit-style / SKILL.md")).toBeNull());
+    await waitFor(() => expect(document.querySelector(".ed-crumb-title")).toBeNull());
     await waitFor(() => expect(screen.queryByText("commit-style")).toBeNull());
   }, 15000);
-
-  it("edit + save flow round-trips content", async () => {
-    const user = userEvent.setup();
-    await boot();
-    await user.click(screen.getAllByText("docs-sync")[0]);
-    await waitFor(() => expect(screen.getByText("docs-sync / SKILL.md")).toBeTruthy());
-    await user.click(screen.getByText("edit"));
-    // scope to the editor's textarea — the topbar search is also a textbox
-    await waitFor(() => expect(document.querySelector(".modal textarea")).toBeTruthy());
-    const box = document.querySelector(".modal textarea") as HTMLTextAreaElement;
-    await user.clear(box);
-    await user.type(box, "# rewritten");
-    await user.click(screen.getByText("save"));
-    // saving lands back in view mode: the morph button reads "edit" again
-    await waitFor(() => expect(screen.getByText("edit")).toBeTruthy());
-  });
 
   it("create flow: submit opens the editor with the new skill", async () => {
     const user = userEvent.setup();
@@ -164,7 +171,7 @@ describe("app click flows (preview mode)", () => {
     await user.type(name, "smoke-skill");
     await user.type(desc, "created by the click smoke test");
     await user.click(within(modal).getByText("create & edit"));
-    await waitFor(() => expect(screen.getByText("smoke-skill / SKILL.md")).toBeTruthy());
+    await waitFor(() => expect(document.querySelector(".ed-crumb-title")?.textContent).toContain("smoke-skill"));
     // and it joins the global list behind the modal
     await waitFor(() => expect(screen.getAllByText("smoke-skill").length).toBeGreaterThan(0));
   });
