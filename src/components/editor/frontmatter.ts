@@ -27,9 +27,32 @@ export function parseFrontmatterFields(doc: Text): Record<string, string> {
   const to = doc.lineAt(range.to).number;
   for (let i = from + 1; i < to; i++) {
     const m = doc.line(i).text.match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
-    if (m) out[m[1]] = m[2].trim().replace(/^"(.*)"$/, "$1");
+    if (m) out[m[1]] = decodeYamlScalar(m[2]);
   }
   return out;
+}
+
+/** Decodes the two quoting styles the Rust reader understands. Without
+ *  this, a description written with `\"`/`\n` escapes would surface (and
+ *  lint) with literal escape text. */
+export function decodeYamlScalar(value: string): string {
+  const v = value.trim();
+  const dq = /^"(.*)"$/.exec(v);
+  if (dq) {
+    return dq[1].replace(/\\([nrt"\\])/g, (_, c) => {
+      switch (c) {
+        case "n": return "\n";
+        case "r": return "\r";
+        case "t": return "\t";
+        case '"': return '"';
+        case "\\": return "\\";
+        default: return c;
+      }
+    });
+  }
+  const sq = /^'(.*)'$/.exec(v);
+  if (sq) return sq[1].replace(/''/g, "'");
+  return v;
 }
 
 /** Tints the frontmatter block and colors `key:` / `---` marks. */

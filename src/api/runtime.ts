@@ -103,6 +103,61 @@ const skills: Skill[] = [
 
 const contents = new Map<string, string>();
 
+/** Supporting files (references/, scripts/…) per skill, for the preview's
+ *  level-3 resource tree. Keyed by manifest id → relative path → content. */
+const resources = new Map<string, Map<string, string>>();
+
+// Seed a couple of level-3 references so the resource tree is demoable.
+seedResources(skills[0].id, {
+  "references/deploy-checklist.md":
+    "# Deploy checklist\n\n- [ ] smoke test\n- [ ] rollback plan\n- [ ] announce\n",
+});
+seedResources(skills[2].id, {
+  "references/changelog-format.md":
+    "# Changelog format\n\nKeep entries one line, imperative, with a link.\n",
+});
+
+/** The skill's folder name, derived from its manifest path. */
+function folderOf(skill: Skill): string {
+  const parts = skill.path.split("/");
+  return parts[parts.length - 1];
+}
+
+/** A couple of seed references so the resource tree is demoable. */
+function seedResources(skillId: string, entries: Record<string, string>) {
+  resources.set(skillId, new Map(Object.entries(entries)));
+}
+
+/** Light mirror of the Rust `lint_skill_content` second opinion. */
+function previewLintSkill(content: string, folderName: string) {
+  const out: { severity: "error" | "warning" | "info"; message: string; line: number }[] = [];
+  const lines = content.split("\n");
+  if (lines[0]?.trim() !== "---") {
+    out.push({ severity: "error", message: "Missing YAML frontmatter.", line: 1 });
+    return out;
+  }
+  let name = "";
+  let description = "";
+  for (let i = 1; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (t === "---") break;
+    const m = t.match(/^([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$/);
+    if (m) {
+      if (m[1] === "name") name = m[2].trim();
+      if (m[1] === "description") description = m[2].trim();
+    }
+  }
+  if (!name) out.push({ severity: "error", message: "Frontmatter needs a `name` field.", line: 1 });
+  else if (name !== folderName) out.push({ severity: "warning", message: `name “${name}” differs from the folder “${folderName}”.`, line: 1 });
+  if (!description) out.push({ severity: "error", message: "Frontmatter needs a `description` field.", line: 1 });
+  else {
+    if (description.length > 1024) out.push({ severity: "error", message: "description is over 1024 chars.", line: 1 });
+    if (/[<>]/.test(description)) out.push({ severity: "warning", message: "Avoid < > in the description.", line: 1 });
+  }
+  return out;
+}
+
+
 const now = () => Math.floor(Date.now() / 1000);
 const USAGE_WINDOW_SECS = 30 * 24 * 60 * 60;
 
@@ -236,6 +291,25 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   write_skill_content: ({ id, content }) => {
     contents.set(String(id), String(content));
     return null;
+  },
+  lint_skill_content: ({ id, content }) => {
+    const skill = skills.find((s) => s.id === id);
+    if (!skill) throw new Error("unknown skill");
+    return previewLintSkill(String(content ?? ""), folderOf(skill));
+  },
+  list_skill_resources: ({ id }) => {
+    const skill = skills.find((s) => s.id === id);
+    if (!skill) throw new Error("unknown skill");
+    return [...(resources.get(skill.id) ?? new Map()).keys()].sort();
+  },
+  read_skill_resource: ({ id, relative }) => {
+    const skill = skills.find((s) => s.id === id);
+    if (!skill) throw new Error("unknown skill");
+    const rel = String(relative ?? "");
+    if (rel.includes("..") || rel.startsWith("/")) throw new Error("not a contained resource path");
+    const content = (resources.get(skill.id) ?? new Map()).get(rel);
+    if (content === undefined) throw new Error("unknown resource");
+    return content;
   },
   create_skill: ({ tool, scope, projectPath, name, description }) => {
     const t = String(tool) as Skill["tool"];

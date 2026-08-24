@@ -14,6 +14,7 @@ import {
   Minus,
   MoreHoriz,
   NavArrowDown,
+  Page,
   PagePlus,
   Pin,
   PinSolid,
@@ -73,6 +74,10 @@ export function HomeIcon(props: IconProps) {
 
 export function FolderIcon(props: IconProps) {
   return <Folder {...p(props)} />;
+}
+
+export function FileIcon(props: IconProps) {
+  return <Page {...p(props)} />;
 }
 
 export function GridIcon(props: IconProps) {

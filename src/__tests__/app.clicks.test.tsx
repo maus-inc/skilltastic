@@ -86,6 +86,61 @@ describe("app click flows (preview mode)", () => {
     expect(screen.queryByText("code-review")).toBeNull();
   }, 15000);
 
+  it("editor: problems panel lists diagnostics and jumps to one", async () => {
+    const user = userEvent.setup();
+    await boot();
+    await user.click(screen.getAllByText("code-review")[0]);
+    await waitFor(() =>
+      expect(document.querySelector(".ed-crumb-title")?.textContent).toContain("code-review"),
+    );
+    // the description triggers a craft hint, so the count is non-zero
+    const toggle = screen.getByLabelText("toggle problems");
+    expect(toggle.textContent).toMatch(/suggestion/);
+    await user.click(toggle);
+    await waitFor(() => expect(document.querySelector(".ed-problems")).toBeTruthy());
+    const rows = document.querySelectorAll(".ed-problem");
+    expect(rows.length).toBeGreaterThan(0);
+    await user.click(rows[0] as HTMLElement);
+    // clicking never throws and keeps the panel mounted
+    expect(document.querySelector(".ed-problems")).toBeTruthy();
+  }, 15000);
+
+  it("editor: files strip lists and opens a level-3 reference", async () => {
+    const user = userEvent.setup();
+    await boot();
+    await user.click(screen.getAllByText("code-review")[0]);
+    await waitFor(() =>
+      expect(document.querySelector(".ed-crumb-title")?.textContent).toContain("code-review"),
+    );
+    await user.click(screen.getByLabelText("toggle files"));
+    await waitFor(() =>
+      expect(document.querySelector(".ed-file-name")?.textContent).toContain(
+        "references/deploy-checklist.md",
+      ),
+    );
+    await user.click(document.querySelector(".ed-file") as HTMLElement);
+    await waitFor(() =>
+      expect(document.querySelector(".ed-preview-res-name")?.textContent).toContain(
+        "deploy-checklist",
+      ),
+    );
+    expect(document.querySelector(".ed-preview")?.textContent).toContain("Deploy checklist");
+  }, 15000);
+
+  it("editor: diff view renders a read-only changes overlay", async () => {
+    const user = userEvent.setup();
+    await boot();
+    await user.click(screen.getAllByText("code-review")[0]);
+    await waitFor(() =>
+      expect(document.querySelector(".ed-crumb-title")?.textContent).toContain("code-review"),
+    );
+    await user.click(screen.getByLabelText("review changes"));
+    await waitFor(() => expect(document.querySelector(".ed-diff")).toBeTruthy());
+    expect(document.querySelector(".ed-diff-title")?.textContent).toContain("review changes");
+    await user.click(screen.getByLabelText("close diff"));
+    await waitFor(() => expect(document.querySelector(".ed-diff")).toBeNull());
+  }, 15000);
+
   it("clicking a switch toggles the skill and the card stays visible", async () => {
     const user = userEvent.setup();
     await boot();

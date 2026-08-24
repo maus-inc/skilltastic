@@ -17,6 +17,13 @@
         { "url": "https://github.com/maus-inc/skilltastic" },
         { "url": "https://github.com/maus-inc/skilltastic/*" }
       ]
+    },
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        { "name": "open-in-code", "cmd": "code", "args": true },
+        { "name": "open-in-zed", "cmd": "zed", "args": true }
+      ]
     }
   ]
 }

@@ -72,3 +72,42 @@ pub fn write_skill_content(app: AppHandle, id: String, content: String) -> Resul
     let managed = manageable_manifest(&app, Path::new(&id))?;
     fs::write(managed.canonical, content).map_err(|e| e.to_string())
 }
+
+/// The authoritative second opinion over a manifest: `create_skill`-parity
+/// frontmatter checks plus a couple of markdown-health rules. Runs on save,
+/// on the caller-supplied content (the raw write is deliberately advisory).
+#[tauri::command]
+pub fn lint_skill_content(
+    app: AppHandle,
+    id: String,
+    content: String,
+) -> Result<Vec<crate::skills::SkillDiagnostic>, String> {
+    let managed = manageable_manifest(&app, Path::new(&id))?;
+    let folder_name = managed
+        .raw
+        .parent()
+        .and_then(|d| d.file_name())
+        .and_then(|n| n.to_str())
+        .unwrap_or("")
+        .to_string();
+    Ok(crate::skills::lint_manifest(&content, &folder_name))
+}
+
+/// Relative paths of the skill's supporting files (level-3 references),
+/// excluding SKILL.md.
+#[tauri::command]
+pub fn list_skill_resources(app: AppHandle, id: String) -> Result<Vec<String>, String> {
+    let managed = manageable_manifest(&app, Path::new(&id))?;
+    crate::skills::list_resources(&managed.canonical)
+}
+
+/// Reads one supporting file, read-only and contained in the skill folder.
+#[tauri::command]
+pub fn read_skill_resource(
+    app: AppHandle,
+    id: String,
+    relative: String,
+) -> Result<String, String> {
+    let managed = manageable_manifest(&app, Path::new(&id))?;
+    crate::skills::read_resource(&managed.canonical, &relative)
+}

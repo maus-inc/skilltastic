@@ -2,20 +2,32 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { basicSetup } from "codemirror";
 import { EditorView, keymap } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
-import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-import { linter, lintGutter } from "@codemirror/lint";
+import { markdown } from "@codemirror/lang-markdown";
+import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
 import { autocompletion } from "@codemirror/autocomplete";
 import { api } from "../../api";
+import { openInExternalEditor } from "../../api/shell";
+import { IN_TAURI } from "../../api/runtime";
 import { renderMarkdown } from "../../utils/markdown";
 import { provider } from "../ui/providers";
 import { Button } from "../ui/Button";
 import { TimedUndoAction } from "../ui/TimedUndoAction";
-import { CheckIcon, FolderIcon, GlobeIcon, InfoCircleIcon, TrashIcon } from "../ui/icons";
-import { frontmatterDecorations } from "./frontmatter";
+import {
+  ArrowUpRightIcon,
+  CheckIcon,
+  FileIcon,
+  FolderIcon,
+  GlobeIcon,
+  InfoCircleIcon,
+  TrashIcon,
+} from "../ui/icons";
+import { frontmatterDecorations, parseFrontmatterFields } from "./frontmatter";
 import { lintSkillDoc, skillLinter } from "./lint";
 import { skillCompletion } from "./completion";
 import { skilltasticHighlight, skilltasticTheme } from "./theme";
-import type { Skill, ToolEntry } from "../../types";
+import { ProblemsPanel } from "./ProblemsPanel";
+import { DiffPanel } from "./DiffPanel";
+import type { Skill, SkillDiagnostic, ToolEntry } from "../../types";
 
 export interface EditorTabApi {
   save: () => Promise<void>;
@@ -30,10 +42,13 @@ interface SkillEditorTabProps {
   onDirtyChange: (tabId: string, dirty: boolean) => void;
   registerApi: (tabId: string, api: EditorTabApi | null) => void;
   onDelete: (skill: Skill) => void;
+  /** fires after a successful save, with the freshly-parsed name/description */
+  onSaved: (skill: Skill) => void;
   tabId: string;
 }
 
 const PREVIEW_KEY = "skilltastic:editor-preview";
+const PREVIEW_PCT_KEY = "skilltastic:editor-preview-pct";
 
 /**
  * The SKILL.md workbench: CodeMirror 6 engine under a VS Code-style
@@ -47,16 +62,21 @@ export function SkillEditorTab({
   onDirtyChange,
   registerApi,
   onDelete,
+  onSaved,
   tabId,
 }: SkillEditorTabProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const savedTextRef = useRef("");
   const saveFnRef = useRef<() => Promise<void>>(async () => {});
+  const openEditorRef = useRef<(editor: "code" | "zed") => void>(() => {});
 
   const [loading, setLoading] = useState(true);
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState({ line: 1, col: 1, words: 0, chars: 0, lints: 0 });
+  const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
+  const [diskText, setDiskText] = useState("");
+  const [bufferText, setBufferText] = useState("");
   const [previewOn, setPreviewOn] = useState(() => {
     try {
       return localStorage.getItem(PREVIEW_KEY) !== "0";
@@ -65,11 +85,25 @@ export function SkillEditorTab({
     }
   });
   const [previewHtml, setPreviewHtml] = useState("");
-  const [previewPct, setPreviewPct] = useState(42);
+  const [previewPct, setPreviewPct] = useState(() => {
+    try {
+      const n = Number(localStorage.getItem(PREVIEW_PCT_KEY));
+      return Number.isFinite(n) && n > 0 ? n : 42;
+    } catch {
+      return 42;
+    }
+  });
   // bumped on every doc change so the preview refreshes even for edits
   // that keep the character count identical (status.chars alone misses them)
   const [docVersion, setDocVersion] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [strictIssues, setStrictIssues] = useState<SkillDiagnostic[]>([]);
+  const [showProblems, setShowProblems] = useState(false);
+  const [showDiff, setShowDiff] = useState(false);
+  const [showFiles, setShowFiles] = useState(false);
+  const [resourcePaths, setResourcePaths] = useState<string[]>([]);
+  const [activeResource, setActiveResource] = useState<string | null>(null);
+  const [resourceContent, setResourceContent] = useState("");
   const shellRef = useRef<HTMLDivElement>(null);
 
   const folderName = useMemo(() => {
@@ -88,6 +122,8 @@ export function SkillEditorTab({
     api.readSkillContent(skill.id).then((text) => {
       if (cancelled || !mountRef.current) return;
       savedTextRef.current = text;
+      setDiskText(text);
+      setBufferText(text);
       const view = new EditorView({
         parent: mountRef.current,
         state: EditorState.create({
@@ -95,13 +131,13 @@ export function SkillEditorTab({
           extensions: [
             basicSetup,
             lintGutter(),
-            markdown({ base: markdownLanguage }),
+            markdown(),
             frontmatterDecorations,
             skilltasticTheme,
             skilltasticHighlight,
             EditorView.lineWrapping,
             autocompletion({ override: [skillCompletion] }),
-            linter(skillLinter(folderName)),
+            linter(skillLinter(folderName), { delay: 250 }),
             keymap.of([
               {
                 key: "Mod-s",
@@ -133,6 +169,8 @@ export function SkillEditorTab({
               }
               if (u.docChanged) {
                 setDocVersion((v) => v + 1);
+                setBufferText(u.state.doc.toString());
+                setDiagnostics(lintSkillDoc(u.state.doc, folderName));
                 const d = u.state.doc.toString() !== savedTextRef.current;
                 setDirty((prev) => {
                   if (prev !== d) onDirtyChange(tabId, d);
@@ -144,6 +182,7 @@ export function SkillEditorTab({
         }),
       });
       viewRef.current = view;
+      setDiagnostics(lintSkillDoc(view.state.doc, folderName));
       setStatus((s) => ({
         ...s,
         chars: text.length,
@@ -151,6 +190,7 @@ export function SkillEditorTab({
         lints: lintSkillDoc(view.state.doc, folderName).length,
       }));
       setLoading(false);
+      view.focus(); // a newly opened skill should be immediately editable
 
       registerApi(tabId, {
         save: () => saveFnRef.current(),
@@ -187,8 +227,30 @@ export function SkillEditorTab({
     }
     setSaveError(null);
     savedTextRef.current = text;
+    setDiskText(text);
     setDirty(false);
     onDirtyChange(tabId, false);
+
+    // authoritative second opinion from the Rust side (non-blocking)
+    try {
+      setStrictIssues(await api.lintSkillContent(skill.id, text));
+    } catch {
+      setStrictIssues([]);
+    }
+
+    // propagate name/description edits so the dashboard + tab label refresh
+    const fields = parseFrontmatterFields(view.state.doc);
+    onSaved({
+      ...skill,
+      name: fields.name || skill.name,
+      description: fields.description ?? skill.description,
+    });
+  };
+
+  openEditorRef.current = (editor: "code" | "zed") => {
+    openInExternalEditor(editor, skill.path, status.line, status.col).catch((e) => {
+      setSaveError(String(e));
+    });
   };
 
   const togglePreviewRef = useRef(() => {});
@@ -204,6 +266,15 @@ export function SkillEditorTab({
     });
   };
 
+  const setPreviewWidth = (pct: number) => {
+    setPreviewPct(pct);
+    try {
+      localStorage.setItem(PREVIEW_PCT_KEY, String(pct));
+    } catch {
+      /* preference just won't persist */
+    }
+  };
+
   // ---- preview rendering (debounced) ----
   useEffect(() => {
     const view = viewRef.current;
@@ -214,6 +285,40 @@ export function SkillEditorTab({
     return () => window.clearTimeout(t);
   }, [previewOn, status.chars, docVersion, loading]);
 
+  // ---- resource tree (level-3 references) ----
+  useEffect(() => {
+    if (!showFiles) return;
+    let active = true;
+    api
+      .listSkillResources(skill.id)
+      .then((paths) => active && setResourcePaths(paths))
+      .catch(() => active && setResourcePaths([]));
+    return () => {
+      active = false;
+    };
+  }, [showFiles, skill.id]);
+
+  function openResource(path: string) {
+    setActiveResource(path);
+    api
+      .readSkillResource(skill.id, path)
+      .then(setResourceContent)
+      .catch((e) => setResourceContent(`couldn't read ${path}: ${String(e)}`));
+  }
+
+  function jumpTo(pos: number) {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      selection: { anchor: pos },
+      effects: EditorView.scrollIntoView(pos, { y: "center" }),
+    });
+    view.focus();
+  }
+
+  const lineOf = (pos: number) => viewRef.current?.state.doc.lineAt(pos).number ?? 1;
+  const problemCount = diagnostics.length;
+
   // ---- divider drag ----
   const onDividerDown = (e: React.PointerEvent) => {
     e.preventDefault();
@@ -222,7 +327,7 @@ export function SkillEditorTab({
     const move = (ev: PointerEvent) => {
       const rect = shell.getBoundingClientRect();
       const pct = ((rect.right - ev.clientX) / rect.width) * 100;
-      setPreviewPct(Math.min(70, Math.max(24, pct)));
+      setPreviewWidth(Math.min(70, Math.max(24, pct)));
     };
     const up = () => {
       window.removeEventListener("pointermove", move);
@@ -270,21 +375,110 @@ export function SkillEditorTab({
           ))}
         </span>
         <span className="ed-crumb-path">{skill.path}</span>
+        {IN_TAURI && (
+          <span className="ed-open-external">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openEditorRef.current("code")}
+              title="open this SKILL.md in VS Code"
+              aria-label="open in vs code"
+            >
+              <ArrowUpRightIcon size={12} />
+              code
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openEditorRef.current("zed")}
+              title="open this SKILL.md in Zed"
+              aria-label="open in zed"
+            >
+              <ArrowUpRightIcon size={12} />
+              zed
+            </Button>
+          </span>
+        )}
       </div>
 
-      {/* editor + preview split */}
+      {showProblems && (
+        <ProblemsPanel
+          diagnostics={diagnostics}
+          lineOf={lineOf}
+          onJump={jumpTo}
+          onClose={() => setShowProblems(false)}
+        />
+      )}
+
+      {/* editor + optional files strip + preview split */}
       <div className="ed-body" style={{ "--preview-pct": `${previewPct}%` } as CSSProperties}>
+        {showFiles && (
+          <div className="ed-files">
+            <div className="ed-files-head">files</div>
+            <div className="ed-files-list">
+              {resourcePaths.length === 0 ? (
+                <span className="ed-files-empty">no supporting files</span>
+              ) : (
+                resourcePaths.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`ed-file ${activeResource === p ? "active" : ""}`}
+                    onClick={() => openResource(p)}
+                    title={p}
+                  >
+                    <FileIcon size={12} />
+                    <span className="ed-file-name">{p}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
         <div className="ed-cm" ref={mountRef}>
           {loading && <div className="empty-state">loading…</div>}
         </div>
         {previewOn && (
           <>
             <div className="ed-divider" onPointerDown={onDividerDown} title="drag to resize" />
-            <div
-              className="markdown-body ed-preview"
-              dangerouslySetInnerHTML={{ __html: previewHtml }}
-            />
+            <div className="ed-preview">
+              {activeResource ? (
+                <>
+                  <div className="ed-preview-res-head">
+                    <span className="ed-preview-res-name">{activeResource}</span>
+                    <button
+                      type="button"
+                      className="icon-btn-plain"
+                      onClick={() => setActiveResource(null)}
+                      aria-label="back to skill preview"
+                    >
+                      <ArrowUpRightIcon size={12} />
+                    </button>
+                  </div>
+                  {activeResource.endsWith(".md") ? (
+                    <div
+                      className="markdown-body ed-preview-body"
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(resourceContent) }}
+                    />
+                  ) : (
+                    <pre className="ed-resource-pre">{resourceContent}</pre>
+                  )}
+                </>
+              ) : (
+                <div
+                  className="markdown-body ed-preview-body"
+                  dangerouslySetInnerHTML={{ __html: previewHtml }}
+                />
+              )}
+            </div>
           </>
+        )}
+        {showDiff && (
+          <DiffPanel
+            saved={diskText}
+            current={bufferText}
+            onClose={() => setShowDiff(false)}
+          />
         )}
       </div>
 
@@ -296,9 +490,23 @@ export function SkillEditorTab({
         <span className="ed-status-item">
           {status.words} words · {status.chars} chars
         </span>
-        <span className={`ed-status-item ${status.lints ? "warn" : ""}`}>
-          {status.lints ? `${status.lints} suggestion${status.lints === 1 ? "" : "s"}` : "clean"}
-        </span>
+        <button
+          type="button"
+          className={`ed-status-item ed-status-btn ${problemCount ? "warn" : ""}`}
+          onClick={() => setShowProblems((s) => !s)}
+          aria-label="toggle problems"
+          title="problems"
+        >
+          {problemCount ? `${problemCount} suggestion${problemCount === 1 ? "" : "s"}` : "clean"}
+        </button>
+        {strictIssues.length > 0 && (
+          <span
+            className="ed-status-item warn"
+            title={strictIssues.map((d) => `${d.line}: ${d.message}`).join("\n")}
+          >
+            {strictIssues.length} policy
+          </span>
+        )}
         <span className="footer-spacer" />
         {saveError && (
           <span className="ed-status-item error" title={saveError}>
@@ -328,6 +536,26 @@ export function SkillEditorTab({
           title="⌘⇧V"
         >
           {previewOn ? "hide preview" : "preview"}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={showFiles ? "is-active" : undefined}
+          onClick={() => setShowFiles((s) => !s)}
+          aria-label="toggle files"
+          title="supporting files"
+        >
+          files
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={showDiff ? "is-active" : undefined}
+          onClick={() => setShowDiff((s) => !s)}
+          aria-label="review changes"
+          title="diff against the saved state"
+        >
+          diff
         </Button>
         <TimedUndoAction
           label="delete"

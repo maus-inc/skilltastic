@@ -24,7 +24,8 @@ src/
     skills/       SkillList.tsx grid, SkillCard.tsx, SortToggle.tsx
     editor/             SkillEditorTab workbench (CodeMirror 6: theme,
                   lint, completions, frontmatter decorations, split
-                  preview) — skills open as editor tabs, see kb/10
+                  preview, ProblemsPanel, DiffPanel, files strip) —
+                  skills open as editor tabs, see kb/10
     modals/             CreateSkillModal, AddProjectModal, ProjectsModal,
                   UnsavedCloseModal — all built on ui/ModalShell
     ui/                 ModalShell.tsx, icons.tsx (inline SVG icon set),

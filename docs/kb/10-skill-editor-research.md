@@ -87,10 +87,32 @@ tabs, breadcrumb patterns) refined onto our tokens rather than copied
 verbatim — Watermelon's own thesis is "tweak the variables, inherit
 the DNA", which is exactly how the ports work here.
 
-## Later (P2/P3, unchanged)
+## What shipped (P2/P3)
 
-Rust-side markdownlint second opinion, diff-on-disk view, "Open in
-Zed/VS Code" shell escape, reference-file tree for level-3 resources.
+- **Problems panel** (`ProblemsPanel.tsx`) — the craft-hints gutter grown
+  into a flat, clickable list (VS Code's Problems panel, our tokens):
+  severity dot, message, line; clicking jumps the cursor. Toggled from
+  the status-bar suggestion count.
+- **Diff-on-disk view** (`DiffPanel.tsx`) — a read-only unified diff
+  (`@codemirror/merge`) between the last saved state and the working
+  buffer, to audit an unsaved edit before commit. Status-bar "diff".
+- **"Open in Zed/VS Code"** (`api/shell.ts`) — the escape hatch into the
+  user's daily driver via `@tauri-apps/plugin-shell`, scoped in
+  `capabilities/default.json` to the `code` and `zed` binaries. VS Code
+  gets `--goto <path>:<line>:<col>`; desktop-only, hidden in the preview.
+- **Rust-side second opinion** — `lint_skill_content` command runs
+  `skills::lint_manifest` (create_skill-parity frontmatter checks plus a
+  couple of markdown-health rules) over a saved manifest; the status bar
+  surfaces a "N policy" item on failures.
+- **Reference-file tree (level-3)** — `list_skill_resources` /
+  `read_skill_resource` commands expose supporting files (references/,
+  scripts/, …) read-only and contained; the editor's "files" strip lists
+  them and the preview pane renders them (markdown for `.md`, plain text
+  otherwise).
+- **Behavioral fixes** — editor autofocuses on open; GFM markdown
+  highlighting matches the preview renderer; lint debounced to 250ms;
+  `name`/`description` edits propagate to the dashboard + tab label on
+  save; preview width persisted; escaped YAML scalars decode correctly.
 
 ## Linting & proactive suggestions (the interesting part)
 
@@ -156,11 +178,11 @@ Three local sources, merged into one diagnostics stream:
 ## Phasing
 
 1. **P1:** editor tab + CM6 + theming + frontmatter lint + save/close
-   discipline (modal stays as fallback route).
+   discipline (modal stays as fallback route). ✅ shipped
 2. **P2:** markdown lint + craft suggestions + quick-fixes + preview
-   split; retire `EditorModal`.
+   split + problems panel; retire `EditorModal`. ✅ shipped
 3. **P3:** "Open in Zed/VS Code" shell escape, diff-on-disk view,
-   Rust-side markdownlint second opinion.
+   Rust-side second opinion, reference-file tree. ✅ shipped
 
 ## Open questions
 

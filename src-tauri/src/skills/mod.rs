@@ -210,6 +210,211 @@ pub(crate) fn decode_yaml_scalar(value: &str) -> String {
     v.to_string()
 }
 
+/// One authoritative diagnostic from the Rust-side second opinion
+/// (`lint_skill_content`). Mirrors `create_skill`'s hard policy plus a
+/// couple of markdown-health checks.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillDiagnostic {
+    pub severity: &'static str,
+    pub message: String,
+    pub line: usize,
+}
+
+/// The authoritative frontmatter/markdown check. The editor lints live on
+/// the keystroke path (advisory); this is the `create_skill`-parity second
+/// opinion run over a saved (or about-to-be-saved) manifest.
+pub(crate) fn lint_manifest(raw: &str, folder_name: &str) -> Vec<SkillDiagnostic> {
+    let mut out: Vec<SkillDiagnostic> = Vec::new();
+    let lines: Vec<&str> = raw.lines().collect();
+
+    if lines.first().map(|l| l.trim()) != Some("---") {
+        out.push(SkillDiagnostic {
+            severity: "error",
+            message: "Missing YAML frontmatter — a SKILL.md starts with ---.".into(),
+            line: 1,
+        });
+        return out;
+    }
+
+    let mut name: Option<String> = None;
+    let mut description: Option<String> = None;
+    let mut name_line = 0usize;
+    let mut desc_line = 0usize;
+    let mut body_start = lines.len();
+    for (i, line) in lines.iter().enumerate().skip(1) {
+        let trimmed = line.trim();
+        if trimmed == "---" {
+            body_start = i + 1;
+            break;
+        }
+        if let Some((key, value)) = trimmed.split_once(':') {
+            let value = decode_yaml_scalar(value);
+            match key.trim() {
+                "name" => {
+                    name = Some(value);
+                    name_line = i + 1;
+                }
+                "description" => {
+                    description = Some(value);
+                    desc_line = i + 1;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    match &name {
+        None => out.push(SkillDiagnostic {
+            severity: "error",
+            message: "Frontmatter needs a `name` field.".into(),
+            line: name_line.max(2),
+        }),
+        Some(n) => {
+            if n.chars().count() > 64 {
+                out.push(SkillDiagnostic {
+                    severity: "error",
+                    message: "`name` must be at most 64 characters.".into(),
+                    line: name_line,
+                });
+            } else if n.starts_with('.')
+                || !n
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
+            {
+                out.push(SkillDiagnostic {
+                    severity: "error",
+                    message: "`name` allows only letters, digits, `_`, `-`, `.` and no leading dot.".into(),
+                    line: name_line,
+                });
+            } else if n != folder_name {
+                out.push(SkillDiagnostic {
+                    severity: "warning",
+                    message: format!("`name` “{n}” differs from the folder “{folder_name}”; agents expect them to match."),
+                    line: name_line,
+                });
+            }
+        }
+    }
+
+    match &description {
+        None => out.push(SkillDiagnostic {
+            severity: "error",
+            message: "Frontmatter needs a `description` field — it is the trigger agents match against.".into(),
+            line: desc_line.max(2),
+        }),
+        Some(d) => {
+            if d.chars().count() > 1024 {
+                out.push(SkillDiagnostic {
+                    severity: "error",
+                    message: "description must be at most 1024 characters.".into(),
+                    line: desc_line,
+                });
+            }
+            if d.contains('<') || d.contains('>') {
+                out.push(SkillDiagnostic {
+                    severity: "error",
+                    message: "description must not contain '<' or '>' — they read like injected markup.".into(),
+                    line: desc_line,
+                });
+            }
+        }
+    }
+
+    // markdown health on the body (a lightweight second opinion)
+    if body_start < lines.len() {
+        let mut saw_h1 = false;
+        for (i, line) in lines.iter().enumerate().skip(body_start) {
+            if line.starts_with("# ") {
+                saw_h1 = true;
+            }
+            if line.ends_with(' ') || line.ends_with('\t') {
+                out.push(SkillDiagnostic {
+                    severity: "info",
+                    message: "Trailing whitespace.".into(),
+                    line: i + 1,
+                });
+            }
+        }
+        if !saw_h1 {
+            out.push(SkillDiagnostic {
+                severity: "warning",
+                message: "No `# Title` heading — agents scan headings first.".into(),
+                line: body_start + 1,
+            });
+        }
+    }
+
+    out
+}
+
+/// Level-3 resources: supporting files inside the skill folder (everything
+/// except SKILL.md), returned as forward-slash relative paths.
+pub(crate) fn list_resources(manifest: &Path) -> Result<Vec<String>, String> {
+    let skill_dir = manifest.parent().ok_or("invalid skill path")?;
+    let mut out: Vec<String> = Vec::new();
+    walk_resources(skill_dir, skill_dir, 0, &mut out);
+    out.sort();
+    Ok(out)
+}
+
+const RESOURCE_MAX_DEPTH: usize = 8;
+const RESOURCE_MAX_ENTRIES: usize = 500;
+const RESOURCE_MAX_BYTES: u64 = 256 * 1024;
+
+fn walk_resources(dir: &Path, base: &Path, depth: usize, out: &mut Vec<String>) {
+    if depth > RESOURCE_MAX_DEPTH || out.len() >= RESOURCE_MAX_ENTRIES {
+        return;
+    }
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        if out.len() >= RESOURCE_MAX_ENTRIES {
+            return;
+        }
+        let path = entry.path();
+        if path.is_dir() {
+            walk_resources(&path, base, depth + 1, out);
+            continue;
+        }
+        if path.file_name().and_then(|n| n.to_str()) == Some(MANIFEST_FILE) {
+            continue;
+        }
+        let Ok(rel) = path.strip_prefix(base) else {
+            continue;
+        };
+        out.push(rel.to_string_lossy().replace('\\', "/"));
+    }
+}
+
+/// Reads one supporting file, read-only and strictly contained in the
+/// skill folder (symlinks followed, must still land inside it).
+pub(crate) fn read_resource(manifest: &Path, relative: &str) -> Result<String, String> {
+    let rel_path = Path::new(relative);
+    if relative.is_empty()
+        || rel_path.is_absolute()
+        || relative.split(|c| c == '/' || c == '\\').any(|c| c == "..")
+    {
+        return Err("not a contained resource path".into());
+    }
+    let skill_dir = manifest.parent().ok_or("invalid skill path")?;
+    let resolved_dir = fs::canonicalize(skill_dir).map_err(|e| e.to_string())?;
+    let target = fs::canonicalize(skill_dir.join(rel_path))
+        .map_err(|_| "resource does not exist".to_string())?;
+    if !target.starts_with(&resolved_dir) {
+        return Err("resource escapes the skill folder".into());
+    }
+    if target.file_name().and_then(|n| n.to_str()) == Some(MANIFEST_FILE) {
+        return Err("SKILL.md is not a resource".into());
+    }
+    let meta = fs::metadata(&target).map_err(|e| e.to_string())?;
+    if meta.len() > RESOURCE_MAX_BYTES {
+        return Err("resource is too large to preview".into());
+    }
+    fs::read_to_string(&target).map_err(|e| e.to_string())
+}
+
 pub fn toggle_enabled(skill_path: &Path, enable: bool) -> std::io::Result<PathBuf> {
     let invalid = || std::io::Error::new(std::io::ErrorKind::NotFound, "invalid skill path");
 
@@ -346,6 +551,58 @@ pub fn discover_project_skills(project_root: &Path) -> Vec<Skill> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lint_manifest_flags_policy_issues() {
+        // missing name match, angle brackets in description, missing H1
+        let raw = "---\nname: other\ndescription: does <stuff>\n---\n\nbody text\n";
+        let diags = lint_manifest(raw, "demo");
+        let messages: Vec<&str> = diags.iter().map(|d| d.message.as_str()).collect();
+        assert!(diags.iter().any(|d| d.severity == "warning" && d.message.contains("differs from the folder")));
+        assert!(diags.iter().any(|d| d.severity == "error" && d.message.contains("'<'")));
+        assert!(diags.iter().any(|d| d.severity == "warning" && d.message.contains("heading")));
+        assert!(messages.iter().all(|m| !m.is_empty()));
+    }
+
+    #[test]
+    fn lint_manifest_accepts_a_clean_manifest() {
+        let raw = "---\nname: demo\ndescription: Use when drafting a changelog.\n---\n\n# demo\n\nWrites a changelog.\n";
+        assert!(lint_manifest(raw, "demo").is_empty());
+    }
+
+    #[test]
+    fn lint_manifest_requires_frontmatter_and_fields() {
+        assert!(lint_manifest("no frontmatter\n", "demo")
+            .iter()
+            .any(|d| d.message.contains("frontmatter")));
+        assert!(lint_manifest("---\n---\n", "demo")
+            .iter()
+            .any(|d| d.message.contains("`name`")));
+        assert!(lint_manifest("---\nname: demo\n---\n", "demo")
+            .iter()
+            .any(|d| d.message.contains("`description`")));
+    }
+
+    #[test]
+    fn resources_are_listed_and_read_contained() {
+        let skills_dir = temp_skills_dir("resources");
+        let manifest = skills_dir.join("demo").join(MANIFEST_FILE);
+        fs::create_dir_all(skills_dir.join("demo/references")).unwrap();
+        fs::write(skills_dir.join("demo/references/guide.md"), "# guide\n").unwrap();
+        fs::write(skills_dir.join("demo/script.sh"), "#!/bin/sh\n").unwrap();
+
+        let list = list_resources(&manifest).unwrap();
+        assert_eq!(list, vec!["references/guide.md".to_string(), "script.sh".to_string()]);
+
+        assert_eq!(read_resource(&manifest, "references/guide.md").unwrap(), "# guide\n");
+        // escapes and the manifest itself are rejected
+        assert!(read_resource(&manifest, "../escape.md").is_err());
+        assert!(read_resource(&manifest, "/abs/path.md").is_err());
+        assert!(read_resource(&manifest, "SKILL.md").is_err());
+        assert!(read_resource(&manifest, "missing.md").is_err());
+
+        fs::remove_dir_all(&skills_dir).unwrap();
+    }
 
     fn temp_skills_dir(tag: &str) -> PathBuf {
         let dir =

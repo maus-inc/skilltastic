@@ -167,6 +167,24 @@ function App() {
     }
   }
 
+  /** After a save, re-sync the dashboard with the freshly-written
+   *  name/description and refresh the open editor + its tab label. */
+  function handleEditorSaved(saved: Skill) {
+    setEditorSkill((cur) => (cur?.id === saved.id ? { ...cur, name: saved.name, description: saved.description } : cur));
+    setTabs((prev) =>
+      prev.map((t) =>
+        t.kind === "editor" && t.skill.id === saved.id
+          ? { ...t, skill: { ...t.skill, name: saved.name, description: saved.description }, label: saved.name }
+          : t,
+      ),
+    );
+    void global.refresh();
+    if (saved.scope === "project") {
+      void projects.refresh();
+      projectView.reload();
+    }
+  }
+
   /** Title-bar tab clicks route back through the normal view switches. */
   function activateTab(id: string) {
     if (id === HOME_TAB_ID) return selectAll();
@@ -381,6 +399,7 @@ function App() {
             onDirtyChange={handleDirtyChange}
             registerApi={registerApi}
             onDelete={deleteFromEditor}
+            onSaved={handleEditorSaved}
           />
         ) : (
           <>

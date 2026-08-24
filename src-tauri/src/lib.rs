@@ -8,6 +8,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             commands::list_tool_entries,
             commands::list_skills,
@@ -15,6 +16,9 @@ pub fn run() {
             commands::delete_skill,
             commands::read_skill_content,
             commands::write_skill_content,
+            commands::lint_skill_content,
+            commands::list_skill_resources,
+            commands::read_skill_resource,
             commands::create_skill,
             commands::list_detected_projects,
             commands::refresh_detected_projects,
