@@ -22,17 +22,22 @@ pub fn list_skills() -> Vec<Skill> {
 
 #[tauri::command]
 pub fn set_skill_enabled(app: AppHandle, id: String, enabled: bool) -> Result<Skill, String> {
-    // operate on the canonical snapshot the validation produced
-    let manifest = manageable_manifest(&app, Path::new(&id))?;
-    let new_manifest = skills::toggle_enabled(&manifest, enabled).map_err(|e| e.to_string())?;
+    // toggling is link-aware: it must move the managed entry (the link
+    // node for a shared skill), never the canonical target — see
+    // ManagedManifest
+    let managed = manageable_manifest(&app, Path::new(&id))?;
+    let new_manifest =
+        skills::toggle_enabled(&managed.raw, enabled).map_err(|e| e.to_string())?;
 
     find_skill_by_manifest(&app, &new_manifest).ok_or_else(|| "skill not found after toggle".into())
 }
 
 #[tauri::command]
 pub fn delete_skill(app: AppHandle, id: String) -> Result<(), String> {
-    let manifest = manageable_manifest(&app, Path::new(&id))?;
-    skills::delete_skill_dir(&manifest).map_err(|e| e.to_string())?;
+    // deletion runs on the managed entry: for a symlinked skill that
+    // unlinks the link and leaves the user's original folder alone
+    let managed = manageable_manifest(&app, Path::new(&id))?;
+    skills::delete_skill_dir(&managed.raw).map_err(|e| e.to_string())?;
     // A project count is only a cache; clear it after a mutation rather than
     // scanning the project again in the background. Stored paths are
     // canonical since enrollment normalizes them, but tolerate older
@@ -41,9 +46,9 @@ pub fn delete_skill(app: AppHandle, id: String) -> Result<(), String> {
         .unwrap_or_default()
         .into_iter()
         .find(|p| {
-            manifest.starts_with(&p.path)
+            managed.canonical.starts_with(&p.path)
                 || fs::canonicalize(&p.path)
-                    .map(|cp| manifest.starts_with(cp))
+                    .map(|cp| managed.canonical.starts_with(cp))
                     .unwrap_or(false)
         })
     {
@@ -54,12 +59,14 @@ pub fn delete_skill(app: AppHandle, id: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn read_skill_content(app: AppHandle, id: String) -> Result<String, String> {
-    let manifest = manageable_manifest(&app, Path::new(&id))?;
-    fs::read_to_string(manifest).map_err(|e| e.to_string())
+    // content ops use the canonical snapshot: a link swapped between
+    // validation and use changes nothing, writes cannot escape a root
+    let managed = manageable_manifest(&app, Path::new(&id))?;
+    fs::read_to_string(managed.canonical).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn write_skill_content(app: AppHandle, id: String, content: String) -> Result<(), String> {
-    let manifest = manageable_manifest(&app, Path::new(&id))?;
-    fs::write(manifest, content).map_err(|e| e.to_string())
+    let managed = manageable_manifest(&app, Path::new(&id))?;
+    fs::write(managed.canonical, content).map_err(|e| e.to_string())
 }

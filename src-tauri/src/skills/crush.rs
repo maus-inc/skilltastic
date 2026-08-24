@@ -18,7 +18,10 @@ impl SkillAdapter for CrushAdapter {
         // Crush's own README cites %LOCALAPPDATA%\crush\skills on Windows
         if cfg!(windows) {
             if let Ok(local) = std::env::var("LOCALAPPDATA") {
-                return PathBuf::from(local).join("crush").join("skills");
+                let local = PathBuf::from(local);
+                if local.is_absolute() {
+                    return local.join("crush").join("skills");
+                }
             }
         }
         config_dir().join("crush").join("skills")

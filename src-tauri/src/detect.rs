@@ -220,9 +220,19 @@ fn in_protected_dir(path: &Path, home: &Path) -> bool {
     const PROTECTED: &[&str] = &[
         "Desktop", "Documents", "Downloads", "Movies", "Music", "Pictures",
     ];
-    path.strip_prefix(home)
-        .ok()
-        .and_then(|rel| rel.components().next())
+    let Ok(rel) = path.strip_prefix(home) else {
+        return false;
+    };
+    // a `..` anywhere means the first component lies about where the path
+    // ends up (Documents/../x is not under Documents) — never exempt it
+    if rel
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
+        return false;
+    }
+    rel.components()
+        .next()
         .and_then(|c| c.as_os_str().to_str())
         .is_some_and(|first| PROTECTED.contains(&first))
 }
@@ -337,6 +347,10 @@ mod tests {
         assert!(!in_protected_dir(&home.join("Documents").parent().unwrap().join("elsewhere"), &home));
         // paths outside home are not "protected" here (nothing to prompt for)
         assert!(!in_protected_dir(Path::new("/opt/project"), &home));
+        // `..` traversal must not inherit the protected exemption —
+        // Documents/../missing ends up outside Documents, so it gets
+        // existence-checked like any other candidate
+        assert!(!in_protected_dir(&home.join("Documents/../missing"), &home));
     }
 
     #[test]

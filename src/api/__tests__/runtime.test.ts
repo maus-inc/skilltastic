@@ -110,6 +110,40 @@ describe("preview invoke fixtures", () => {
     expect(none).toEqual([]);
   });
 
+  it("copilot project skills land where the Rust adapter looks", async () => {
+    const projects = await invoke<ProjectInfo[]>("list_projects");
+    const created = await invoke<Skill>("create_skill", {
+      tool: "copilot",
+      scope: "project",
+      projectPath: projects[0].path,
+      name: "copilot-proj",
+      description: "fixture for the copilot subpath contract",
+    });
+    // CopilotAdapter.project_subpath is .github/skills — the preview must agree
+    expect(created.path).toContain(`${projects[0].path}/.github/skills/`);
+  });
+
+  it("delete drops saved content — recreate starts fresh", async () => {
+    const created = await invoke<Skill>("create_skill", {
+      tool: "cursor",
+      scope: "user",
+      projectPath: null,
+      name: "reborn",
+      description: "first life",
+    });
+    await invoke("write_skill_content", { id: created.id, content: "STALE EDIT" });
+    await invoke("delete_skill", { id: created.id });
+    const reborn = await invoke<Skill>("create_skill", {
+      tool: "cursor",
+      scope: "user",
+      projectPath: null,
+      name: "reborn",
+      description: "second life",
+    });
+    const content = await invoke<string>("read_skill_content", { id: reborn.id });
+    expect(content).not.toContain("STALE EDIT");
+  });
+
   it("detection is opt-in: null until refreshed, then honors excludes", async () => {
     await expect(invoke("list_detected_projects", { exclude: [] })).resolves.toBeNull();
     const detected = await invoke<{ path: string }[]>("refresh_detected_projects", { exclude: [] });

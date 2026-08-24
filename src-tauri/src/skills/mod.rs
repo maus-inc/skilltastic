@@ -148,7 +148,7 @@ fn scan_dir(tool: AgentTool, dir: &Path, scope: SkillScope, enabled: bool) -> Ve
 /// Minimal YAML frontmatter reader for the two fields Skilltastic cares
 /// about (`name`, `description`). Intentionally not a full YAML parser —
 /// SKILL.md frontmatter is a flat key: value list.
-fn parse_frontmatter(raw: &str) -> (String, String) {
+pub(crate) fn parse_frontmatter(raw: &str) -> (String, String) {
     let mut name = String::new();
     let mut description = String::new();
 
@@ -163,11 +163,7 @@ fn parse_frontmatter(raw: &str) -> (String, String) {
         let Some((key, value)) = line.split_once(':') else {
             continue;
         };
-        let value = value
-            .trim()
-            .trim_matches('"')
-            .trim_matches('\'')
-            .to_string();
+        let value = decode_yaml_scalar(value);
         match key.trim() {
             "name" => name = value,
             "description" => description = value,
@@ -175,6 +171,43 @@ fn parse_frontmatter(raw: &str) -> (String, String) {
         }
     }
     (name, description)
+}
+
+/// Decodes the two quoting styles this app reads and writes. Double-quoted
+/// YAML scalars carry escapes (`\n`, `\t`, `\r`, `\"`, `\\` — exactly what
+/// `create_skill`'s emitter produces); single-quoted ones double `''` to
+/// escape a quote. Unquoted values pass through untouched. Without this a
+/// created description containing a newline or quote would surface with
+/// literal escape text.
+pub(crate) fn decode_yaml_scalar(value: &str) -> String {
+    let v = value.trim();
+    if let Some(inner) = v.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
+        let mut out = String::with_capacity(inner.len());
+        let mut chars = inner.chars();
+        while let Some(c) = chars.next() {
+            if c != '\\' {
+                out.push(c);
+                continue;
+            }
+            match chars.next() {
+                Some('n') => out.push('\n'),
+                Some('t') => out.push('\t'),
+                Some('r') => out.push('\r'),
+                Some('"') => out.push('"'),
+                Some('\\') => out.push('\\'),
+                Some(other) => {
+                    out.push('\\');
+                    out.push(other);
+                }
+                None => out.push('\\'),
+            }
+        }
+        return out;
+    }
+    if let Some(inner) = v.strip_prefix('\'').and_then(|s| s.strip_suffix('\'')) {
+        return inner.replace("''", "'");
+    }
+    v.to_string()
 }
 
 pub fn toggle_enabled(skill_path: &Path, enable: bool) -> std::io::Result<PathBuf> {

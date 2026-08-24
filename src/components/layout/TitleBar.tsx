@@ -154,7 +154,7 @@ export function TitleBar({
       {IS_MAC && <div className="tb-mac-inset" data-tauri-drag-region />}
 
       {/* home tab — house icon only, like Figma's recents tab */}
-      <button
+      <button type="button"
         className={`tb-home ${activeTabId === HOME_TAB_ID ? "active" : ""}`}
         onClick={() => onActivateTab(HOME_TAB_ID)}
         data-tip="all skills"
@@ -195,7 +195,7 @@ export function TitleBar({
               )}
             </span>
             <span className="tb-tab-label">{tab.label}</span>
-            <button
+            <button type="button"
               className="tb-tab-close"
               onClick={(e) => {
                 e.stopPropagation();
@@ -209,7 +209,7 @@ export function TitleBar({
         ))}
         </AnimatePresence>
 
-        <button className="tb-plus" onClick={onNewSkill} data-tip="new skill" aria-label="new skill">
+        <button type="button" className="tb-plus" onClick={onNewSkill} data-tip="new skill" aria-label="new skill">
           <PlusIcon size={16} />
         </button>
       </div>
@@ -219,7 +219,7 @@ export function TitleBar({
 
       {/* overflow menu — "…" on macOS, "⌄" next to the controls elsewhere */}
       <div className="tb-menu-wrap" ref={menuRef}>
-        <button
+        <button type="button"
           className={`tb-menu-btn ${menuOpen ? "open" : ""}`}
           onClick={() => setMenuOpen((o) => !o)}
           data-tip="menu"
@@ -244,13 +244,13 @@ export function TitleBar({
       {/* window controls — Windows/Linux only; macOS has traffic lights */}
       {!IS_MAC && (
         <div className="tb-controls">
-          <button className="tb-ctl" onClick={winCtl("minimize")} data-tip="minimize" aria-label="minimize">
+          <button type="button" className="tb-ctl" onClick={winCtl("minimize")} data-tip="minimize" aria-label="minimize">
             <MinimizeIcon size={16} />
           </button>
-          <button className="tb-ctl" onClick={winCtl("toggleMaximize")} data-tip={maximized ? "restore" : "maximize"} aria-label={maximized ? "restore" : "maximize"}>
+          <button type="button" className="tb-ctl" onClick={winCtl("toggleMaximize")} data-tip={maximized ? "restore" : "maximize"} aria-label={maximized ? "restore" : "maximize"}>
             <MorphMaxRestore maximized={maximized} />
           </button>
-          <button className="tb-ctl tb-ctl-close" onClick={winCtl("close")} data-tip="close" aria-label="close">
+          <button type="button" className="tb-ctl tb-ctl-close" onClick={winCtl("close")} data-tip="close" aria-label="close">
             <CloseIcon size={16} />
           </button>
         </div>

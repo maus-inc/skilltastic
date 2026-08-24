@@ -54,7 +54,8 @@ export function ToolTabMark({
 }: MorphProps & { hover: boolean; mark: string; label: string }) {
   const spring = { type: "spring", stiffness: 520, damping: 30, mass: 0.6 } as const;
   return (
-    <span className="tab-mark" style={{ width: size, height: size }}>
+    // decorative: the tab's text label carries the accessible name
+    <span className="tab-mark" style={{ width: size, height: size }} aria-hidden="true">
       <motion.span
         className="tab-mark-slot"
         initial={false}

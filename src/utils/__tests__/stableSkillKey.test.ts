@@ -29,4 +29,11 @@ describe("stableSkillKey", () => {
     const s = skill("/home/u/.agents/skills/y/SKILL.md");
     expect(stableSkillKey(s)).toBe(s.id);
   });
+
+  it("strips only the managed marker, never an ancestor named .disabled", () => {
+    const enabled = skill("/data/.disabled/proj/.claude/skills/x/SKILL.md");
+    const disabled = skill("/data/.disabled/proj/.claude/skills/.disabled/x/SKILL.md");
+    expect(stableSkillKey(disabled)).toBe(stableSkillKey(enabled));
+    expect(stableSkillKey(enabled)).toBe(enabled.id); // ancestor survives
+  });
 });

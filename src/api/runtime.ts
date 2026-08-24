@@ -47,7 +47,7 @@ const previewTools: ToolEntry[] = [
 const PROJECT_SUBPATH: Record<string, string> = {
   claude: ".claude/skills",
   agents: ".agents/skills",
-  copilot: ".copilot/skills",
+  copilot: ".github/skills", // mirrors CopilotAdapter.project_subpath
   crush: ".crush/skills",
   cursor: ".cursor/skills",
   factory: ".factory/skills",
@@ -165,7 +165,14 @@ export function previewPickProjectFolder(): Promise<string | null> {
   return Promise.resolve(browsePool[browseIndex++]);
 }
 
-const clone = <T,>(v: T): T => (v === undefined ? v : JSON.parse(JSON.stringify(v)));
+// JSON round-trip mirrors IPC serialization; undefined is a handler bug
+// (void commands return null) and must surface loudly, not flow on
+const clone = <T,>(v: T): T => {
+  if (v === undefined) {
+    throw new Error("fixture handler returned undefined — void commands must return null");
+  }
+  return JSON.parse(JSON.stringify(v));
+};
 
 function defaultContent(skill: Skill): string {
   return `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n# ${skill.name}\n\n${skill.description}\n\n_(preview mode — edits live only in this browser session)_\n`;
@@ -214,6 +221,9 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     if (index !== -1) {
       const project = projectOf(skills[index].path);
       skills.splice(index, 1);
+      // drop the saved content too — a recreate at the same path must not
+      // resurrect the deleted skill's last edit
+      contents.delete(String(id));
       if (project) skillCountCache.set(project.path, skills.filter((s) => projectOf(s.path)?.path === project.path).length);
     }
     return null;

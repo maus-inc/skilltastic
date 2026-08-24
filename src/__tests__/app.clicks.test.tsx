@@ -53,6 +53,7 @@ describe("app click flows (preview mode)", () => {
     await boot();
     const toggle = screen.getByLabelText("disable code-review");
     const cardBefore = toggle.closest(".skill-card");
+    expect(cardBefore).not.toBeNull();
     await user.click(toggle);
     // the card must survive its own toggle (ids move to .disabled on the
     // backend; the list has to keep showing the skill)
@@ -61,6 +62,7 @@ describe("app click flows (preview mode)", () => {
     // ...as the SAME DOM node — a remount plays the exit animation and
     // reads as the skill disappearing
     const cardAfter = screen.getByLabelText("enable code-review").closest(".skill-card");
+    expect(cardAfter).not.toBeNull();
     expect(cardAfter).toBe(cardBefore);
     await user.click(screen.getByLabelText("enable code-review"));
     await waitFor(() => expect(screen.getByLabelText("disable code-review")).toBeTruthy());

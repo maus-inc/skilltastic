@@ -66,10 +66,18 @@ Any new command that touches disk goes through the same gate. The CSP in
 
 Two hardening rules on top:
 
-- **Operate on the validated snapshot.** `manageable_manifest()` returns the
-  canonical path produced by the resolution check, and commands run their
-  filesystem operation on exactly that path — never on the raw webview
-  string — so a symlink swapped between check and use changes nothing.
+- **Validation returns TWO path forms, and each operation uses the right
+  one.** `manageable_manifest()` yields `raw` (the shape-validated managed
+  entry) and `canonical` (the resolution snapshot). Link-AWARE mutations —
+  `toggle_enabled`, `delete_skill_dir` — MUST run on `raw`, because their
+  symlink handling only works when they see the link node itself; handing
+  them the canonical target would delete/move the user's original folder
+  (the data loss the guard exists to prevent). Content operations
+  (`read_skill_content`/`write_skill_content`) run on `canonical`, so a
+  link swapped between check and use changes nothing and writes cannot
+  escape a root. The shape bar additionally rejects `..` components and
+  anything deeper than `<root>/<skill>/SKILL.md` (or the `.disabled`
+  variant) before canonicalization.
 - **Deleting never follows links.** `delete_skill_dir()` inspects the skill
   folder with `symlink_metadata`: a linked skill is unlinked (the user's
   original folder elsewhere survives), only plain folders recurse.
