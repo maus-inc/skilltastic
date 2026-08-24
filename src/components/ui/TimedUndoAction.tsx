@@ -105,6 +105,7 @@ export const TimedUndoAction: FC<TimedUndoActionProps> = ({
         onClick={onClick}
         disabled={disabled}
         aria-label={armed ? `${undoLabel} — ${count} seconds` : ready ? `confirm ${label}` : label}
+        data-tip={ready ? label : undefined}
         animate={{ width: bounds.width > 0 ? bounds.width : "auto" }}
       >
         <span className="tua-inner" ref={ref}>
@@ -117,24 +118,17 @@ export const TimedUndoAction: FC<TimedUndoActionProps> = ({
               <UndoIcon size={12} />
             </motion.span>
           )}
-          {ready && (
-            <motion.span
-              className="tua-chip"
-              initial={{ opacity: 0, scale: 0.6, rotate: -90 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            >
-              <TrashIcon size={12} />
-            </motion.span>
-          )}
 
-          <span className="tua-textwrap">
-            <span className="btn-morph-label">
-              <AnimatedText text={armed ? undoLabel : label} className="tua-text" />
+          {!ready && (
+            <span className="tua-textwrap">
+              <span className="btn-morph-label">
+                <AnimatedText text={armed ? undoLabel : label} className="tua-text" />
+              </span>
+              {phase === "idle" && hoverIcon && (
+                <span className="btn-morph-icon">{hoverIcon}</span>
+              )}
             </span>
-            {phase === "idle" && hoverIcon && (
-              <span className="btn-morph-icon">{hoverIcon}</span>
-            )}
-          </span>
+          )}
 
           {armed && (
             <motion.span
@@ -143,6 +137,17 @@ export const TimedUndoAction: FC<TimedUndoActionProps> = ({
               animate={{ opacity: 1, scale: 1 }}
             >
               <RollingLabel text={String(Math.max(count, 0))} direction="down" />
+            </motion.span>
+          )}
+
+          {ready && (
+            /* icon-only execute — the label would only soften the moment */
+            <motion.span
+              className="tua-ready-icon"
+              initial={{ opacity: 0, scale: 0.5, rotate: -90 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            >
+              <TrashIcon size={14} />
             </motion.span>
           )}
         </span>

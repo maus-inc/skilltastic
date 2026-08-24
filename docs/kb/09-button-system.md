@@ -80,11 +80,13 @@ restyled to these tokens) is the only confirmation UX:
   appear center-aligned with the per-character spring stagger (no blur
   filters — perf contract). The countdown chip is mono tabular-nums on
   the destructive fill. Clicking it cancels back to rest.
-- **ready (countdown finished):** the control becomes an explicit
-  `[trash][label]` execute button (solid destructive, hotter border).
-  **Nothing auto-commits — ever.** Only clicking the ready button runs
-  the action. Escape or an outside press disarms from armed/ready;
-  unmount/teardown never commits (closing a modal is not consent).
+- **ready (countdown finished):** the control collapses to an
+  icon-only `[trash]` execute button — the label would only soften the
+  moment. It's a bright surface, so it carries the full depth
+  treatment: top white streak, inset bottom shade + dark ring
+  (streak-black), contact + cast shadows. Only clicking it commits.
+  Escape or an outside press disarms from armed/ready; unmount/teardown
+  never commits (closing a modal is not consent).
 - Width animates via a measured spring (`react-use-measure`); this is the
   one sanctioned width animation (stateful expand, not a hover morph).
 - `useSkillMutations.remove` executes only; confirmation lives in the UI
