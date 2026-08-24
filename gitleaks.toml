@@ -1,0 +1,18 @@
+title = "Skilltastic gitleaks config"
+
+# Start from gitleaks' built-in default rules, then exclude the build and
+# dependency trees that are never expected to hold a real secret.
+[extend]
+useDefault = true
+
+[allowlist]
+paths = [
+  '''node_modules/''',
+  '''(^|/)dist/''',
+  '''(^|/)build/''',
+  '''(^|/)target/''',
+  '''(^|/)src-tauri/target/''',
+  '''(^|/)\.git/''',
+  '''Cargo.lock''',
+  '''package-lock.json''',
+]
