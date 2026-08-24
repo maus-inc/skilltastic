@@ -615,10 +615,18 @@ body,
   flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 8px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-faint);
-  opacity: 0.7;
+  /* quiet until the row is hovered (or arrow-highlighted, the menu's
+     keyboard equivalent of hover) */
+  opacity: 0;
+  transition: opacity 120ms var(--ease-out);
+}
+
+.cmd-item:hover .cmd-item-hint,
+.cmd-item[data-highlighted="true"] .cmd-item-hint {
+  opacity: 0.8;
 }
 
 /* github redirect arrow: beckons with a diagonal loop on row hover */

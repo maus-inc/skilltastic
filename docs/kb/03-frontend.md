@@ -177,7 +177,7 @@ The OS title bar is replaced with a Figma-style one (`layout/TitleBar.tsx`):
 - **Dropdown:** the arrow opens a command popover
   (`ui/CommandMenu.tsx`, ported from Watermelon UI's combobox-1):
   search input, grouped list ordered VIEWS-first (tools / projects,
-  hint "view", then one-shot actions), empty state, check on the
+  hint "view" revealed on row hover, then one-shot actions), empty state, check on the
   active view, full keyboard support. Pointer selection plays a 220ms
   press dip (in-out) BEFORE the action runs, so the press is seen;
   keyboard selection stays instant. Reuse `CommandMenu` for any future
