@@ -47,6 +47,15 @@ export function CommandMenu({
   const [pressedId, setPressedId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const dipTimer = useRef<number | null>(null);
+
+  // a dip in flight when the menu closes must not fire its action later
+  useEffect(
+    () => () => {
+      if (dipTimer.current !== null) window.clearTimeout(dipTimer.current);
+    },
+    [],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -87,7 +96,10 @@ export function CommandMenu({
       return;
     }
     setPressedId(entry.id);
-    window.setTimeout(() => {
+    // a closing menu (Escape, click-away) during the dip must never run the
+    // action — the timer is cleared on unmount, so it can't fire stale
+    dipTimer.current = window.setTimeout(() => {
+      dipTimer.current = null;
       onClose();
       entry.action();
     }, 220);

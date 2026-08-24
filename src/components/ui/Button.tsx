@@ -1,5 +1,7 @@
 import {
   forwardRef,
+  useEffect,
+  useRef,
   useState,
   type ButtonHTMLAttributes,
   type MouseEvent,
@@ -34,18 +36,40 @@ interface ButtonProps
  * action runs, so the press is seen; keyboard-activated clicks act
  * instantly (doctrine: keyboard gets no animation).
  */
+/** Whether the OS asks for reduced motion — the press dip is invisible then,
+ *  so there is nothing to show before the action runs. */
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = "default", size = "default", className, type = "button", onClick, ...props }, ref) => {
     const [dipping, setDipping] = useState(false);
+    const dipTimer = useRef<number | null>(null);
+
+    // a dip in flight when the button unmounts must not fire its action later
+    useEffect(
+      () => () => {
+        if (dipTimer.current !== null) window.clearTimeout(dipTimer.current);
+      },
+      [],
+    );
 
     const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
       if (!onClick || dipping) return;
-      if (e.detail === 0) {
-        onClick(e); // keyboard
+      // keyboard activation (detail 0) acts instantly; so does a pointer
+      // click under reduced motion, where the dip would be invisible
+      if (e.detail === 0 || prefersReducedMotion()) {
+        onClick(e);
         return;
       }
       setDipping(true);
-      window.setTimeout(() => {
+      dipTimer.current = window.setTimeout(() => {
+        dipTimer.current = null;
         setDipping(false);
         onClick(e);
       }, 200);

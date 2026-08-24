@@ -39,14 +39,16 @@ pub fn delete_skill(app: AppHandle, id: String) -> Result<(), String> {
     let managed = manageable_manifest(&app, Path::new(&id))?;
     skills::delete_skill_dir(&managed.raw).map_err(|e| e.to_string())?;
     // A project count is only a cache; clear it after a mutation rather than
-    // scanning the project again in the background. Stored paths are
-    // canonical since enrollment normalizes them, but tolerate older
-    // records by also comparing canonical forms.
+    // scanning the project again in the background. Match the RAW entry too:
+    // deletion unlinks the managed link node, and for a symlinked project
+    // skill the canonical target resolves OUTSIDE the project, so a
+    // canonical-only match would never clear the cached count.
     if let Some(project) = projects::list(&app)
         .unwrap_or_default()
         .into_iter()
         .find(|p| {
-            managed.canonical.starts_with(&p.path)
+            managed.raw.starts_with(&p.path)
+                || managed.canonical.starts_with(&p.path)
                 || fs::canonicalize(&p.path)
                     .map(|cp| managed.canonical.starts_with(cp))
                     .unwrap_or(false)

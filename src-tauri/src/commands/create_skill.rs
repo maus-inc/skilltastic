@@ -61,8 +61,9 @@ fn validate_skill_description(description: &str) -> Result<(), String> {
 /// A one-line description rendered as a YAML double-quoted scalar, so
 /// colons, quotes and other YAML-significant characters survive the
 /// frontmatter round trip without inventing a parser. Multi-line values
-/// are emitted as YAML `\n` escapes inside the double-quoted scalar, so
-/// a multi-line description round-trips exactly.
+/// and control characters (`\n`, `\r`, `\t`) are emitted as YAML escapes
+/// inside the double-quoted scalar, so any description round-trips
+/// exactly through `skills::parse_frontmatter`.
 fn yaml_double_quoted(value: &str) -> String {
     let mut out = String::with_capacity(value.len() + 2);
     out.push('"');
@@ -71,7 +72,8 @@ fn yaml_double_quoted(value: &str) -> String {
             '"' => out.push_str("\\\""),
             '\\' => out.push_str("\\\\"),
             '\n' => out.push_str("\\n"),
-            '\r' => {}
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
             _ => out.push(c),
         }
     }
@@ -346,9 +348,9 @@ mod tests {
         let (managed, _unmanaged) = fresh_roots("hostile");
         let roots = vec![managed.clone()];
 
-        // quotes, backslashes, escapes and newlines must all survive
-        // the write→read loop unchanged
-        let description = "say \"hi\" \\ use \\n literally\nthen a real break\tand a tab";
+        // quotes, backslashes, escapes, newlines, tabs and carriage returns
+        // must all survive the write→read loop unchanged
+        let description = "say \"hi\" \\ use \\n literally\nthen a real break\tand a tab\rand a CR";
         let manifest =
             create_skill_manifest(&roots, &managed, "tricky", description).expect("creation");
         let content = fs::read_to_string(&manifest).unwrap();
