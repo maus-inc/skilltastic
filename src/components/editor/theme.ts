@@ -19,6 +19,11 @@ export const skilltasticTheme = EditorView.theme(
       fontFamily: "var(--font-mono)",
       caretColor: "#fff",
       paddingBottom: "40vh",
+      // the editor must stay interactive even under an ancestor that opts
+      // out of selection (chrome uses user-select: none liberally)
+      userSelect: "text",
+      WebkitUserSelect: "text",
+      pointerEvents: "auto",
     },
     ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#fff" },
     "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {

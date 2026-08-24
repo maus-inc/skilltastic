@@ -116,6 +116,17 @@ export function SkillEditorTab({
     [toolEntries, skill.tool],
   );
 
+  // Linting runs inside CM6's update listener (and the linter extension);
+  // a thrown lint can never be allowed to abort the editor's transaction or
+  // it would freeze typing. Every lint call is funnelled through here.
+  const safeLint = (doc: EditorState["doc"]): Diagnostic[] => {
+    try {
+      return lintSkillDoc(doc, folderName);
+    } catch {
+      return [];
+    }
+  };
+
   // ---- editor lifecycle ----
   useEffect(() => {
     let cancelled = false;
@@ -164,13 +175,13 @@ export function SkillEditorTab({
                   col: head - line.from + 1,
                   words: text.trim() ? text.trim().split(/\s+/).length : 0,
                   chars: text.length,
-                  lints: lintSkillDoc(u.state.doc, folderName).length,
+                  lints: safeLint(u.state.doc).length,
                 });
               }
               if (u.docChanged) {
                 setDocVersion((v) => v + 1);
                 setBufferText(u.state.doc.toString());
-                setDiagnostics(lintSkillDoc(u.state.doc, folderName));
+                setDiagnostics(safeLint(u.state.doc));
                 const d = u.state.doc.toString() !== savedTextRef.current;
                 setDirty((prev) => {
                   if (prev !== d) onDirtyChange(tabId, d);
@@ -182,12 +193,12 @@ export function SkillEditorTab({
         }),
       });
       viewRef.current = view;
-      setDiagnostics(lintSkillDoc(view.state.doc, folderName));
+      setDiagnostics(safeLint(view.state.doc));
       setStatus((s) => ({
         ...s,
         chars: text.length,
         words: text.trim() ? text.trim().split(/\s+/).length : 0,
-        lints: lintSkillDoc(view.state.doc, folderName).length,
+        lints: safeLint(view.state.doc).length,
       }));
       setLoading(false);
       view.focus(); // a newly opened skill should be immediately editable

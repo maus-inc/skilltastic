@@ -72,7 +72,8 @@ export function lintSkillDoc(doc: Text, folderName: string): Diagnostic[] {
 
   // ---- body craft + markdown health ----
   const bodyFrom = doc.lineAt(range.to).number + 1;
-  if (bodyFrom <= doc.lines) {
+  const hasBody = bodyFrom <= doc.lines;
+  if (hasBody) {
     let bodyChars = 0;
     let sawH1 = false;
     let blankRun = 0;
@@ -123,13 +124,23 @@ export function lintSkillDoc(doc: Text, folderName: string): Diagnostic[] {
     if (bodyChars > 20000) {
       out.push(diagAt(doc.line(bodyFrom), "info", "Body is over ~5k tokens. Move long references into references/ files; progressive disclosure keeps the skill cheap to load."));
     }
+  } else {
+    // frontmatter-only manifest (a freshly created skill): the body is the
+    // closing `---` line — anchor the craft hint there so it never throws
+    out.push(diagAt(doc.line(doc.lines), "warning", "No body yet. Add a `# Title` heading and the instructions the agent should follow."));
   }
 
   return out;
 }
 
 export function skillLinter(folderName: string): LintSource {
-  return (view) => lintSkillDoc(view.state.doc, folderName);
+  return (view) => {
+    try {
+      return lintSkillDoc(view.state.doc, folderName);
+    } catch {
+      return []; // a lint crash must never break the editor
+    }
+  };
 }
 
 // ---- helpers ----
