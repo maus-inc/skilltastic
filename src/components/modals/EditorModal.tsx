@@ -82,6 +82,7 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
                   className="readers-info"
                   data-tip="These tools share one folder, so disabling or deleting the skill affects all of them."
                   data-tip-side="top"
+                  data-tip-align="start"
                 >
                   <InfoCircleIcon size={12} />
                 </span>
