@@ -1,0 +1,5 @@
+# This file is a Gitleaks *baseline* (fingerprint allowlist). Entries MUST be
+# finding FINGERPRINTS, e.g. `<ruleID>:<commit>:<email>:<path>:<line>` — NOT
+# path globs. Path-based exclusions live in gitleaks.toml under [allowlist].
+# Keep this file empty (or fingerprints only) so it does not silently mask
+# real findings.
