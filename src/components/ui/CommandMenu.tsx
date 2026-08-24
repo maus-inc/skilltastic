@@ -44,6 +44,7 @@ export function CommandMenu({
 }: CommandMenuProps) {
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(0);
+  const [pressedId, setPressedId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -76,9 +77,20 @@ export function CommandMenu({
       ?.scrollIntoView({ block: "nearest" });
   }, [highlight]);
 
-  const select = (entry: CommandEntry) => {
-    onClose();
-    entry.action();
+  const select = (entry: CommandEntry, immediate = false) => {
+    if (pressedId) return; // one dip at a time
+    // pointer clicks play the press dip in-out FIRST so the user sees the
+    // animation before the action lands; keyboard stays instant (doctrine)
+    if (immediate) {
+      onClose();
+      entry.action();
+      return;
+    }
+    setPressedId(entry.id);
+    window.setTimeout(() => {
+      onClose();
+      entry.action();
+    }, 220);
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -91,7 +103,7 @@ export function CommandMenu({
     } else if (e.key === "Enter") {
       e.preventDefault();
       const entry = filtered[highlight];
-      if (entry) select(entry);
+      if (entry) select(entry, true);
     } else if (e.key === "Escape") {
       e.preventDefault();
       onClose();
@@ -139,7 +151,7 @@ export function CommandMenu({
                   aria-selected={entry.checked ?? false}
                   data-highlighted={index === highlight}
                   data-checked={entry.checked ?? false}
-                  className="cmd-item"
+                  className={`cmd-item ${pressedId === entry.id ? "pressed" : ""}`}
                   initial={{ opacity: 0, transform: "translateY(-3px)" }}
                   animate={{ opacity: 1, transform: "translateY(0px)" }}
                   transition={{

@@ -8,8 +8,11 @@ port 1420 (`vite.config.ts`), which `tauri.conf.json` points at during dev.
 ```
 src/
   api/            typed invoke() wrappers — the ONLY place IPC happens
-    runtime.ts    the invoke() shim: real IPC in the desktop app, read-only
-                  fixtures in a plain-browser dev preview (never in prod)
+    runtime.ts    the invoke() shim: real IPC in the desktop app, a fully
+                  interactive session-local fixture store in a plain-browser
+                  dev preview (never in prod). Handlers mirror the Rust
+                  commands' shapes — void commands return `null`, and unit
+                  tests in src/api/__tests__ guard the whole surface.
     skills.ts     skill commands (list, toggle, read/write, create, delete)
     projects.ts   project commands (tracked + detected projects)
     index.ts      barrel
@@ -19,9 +22,14 @@ src/
                   Sidebar.tsx (tools, projects, pins, version, repo link),
                   Topbar.tsx (search, view controls)
     skills/       SkillList.tsx grid, SkillCard.tsx, SortToggle.tsx
-    modals/       EditorModal (view/edit SKILL.md), CreateSkillModal,
-                  AddProjectModal, ProjectsModal — all built on ui/ModalShell
-    ui/           ModalShell.tsx, icons.tsx (inline SVG icon set)
+    editor/             SkillEditorTab workbench (CodeMirror 6: theme,
+                  lint, completions, frontmatter decorations, split
+                  preview) — skills open as editor tabs, see kb/10
+    modals/             CreateSkillModal, AddProjectModal, ProjectsModal,
+                  UnsavedCloseModal — all built on ui/ModalShell
+    ui/                 ModalShell.tsx, icons.tsx (inline SVG icon set),
+                  Button.tsx, Switch.tsx, TimedUndoAction.tsx (arm →
+                  countdown → commit confirmation for destructive flows)
   hooks/
     useGlobalSkills.ts    loads tool entries + all user-level skills
     useProjects.ts        tracked + detected projects, add/remove/pin/touch
@@ -46,6 +54,10 @@ src/
 
 - **Data flows through hooks.** Components stay presentational; fetching and
   mutations live in `hooks/`, IPC in `api/`. Keep it that way.
+- **Skill lists key on `stableSkillKey`, never the raw manifest id.**
+  Toggling moves the folder into/out of `.disabled`, changing the id; a
+  key change would remount the card (exit animation — the skill visibly
+  "disappears"). Mutations match on the stable key for the same reason.
 - **Types mirror serde.** Rust structs serialize `camelCase`
   (`#[serde(rename_all = "camelCase")]`); the TS types in `src/types/` must
   match field-for-field.
@@ -85,19 +97,39 @@ src/
   content are rounded (12px), bordered, translucent panels floating on
   an 8px-gapped black canvas under the title bar.
 - **Morphing icons:** `morphicons` (spring path-morphing, zero deps)
-  drives every reactive icon that transforms between two shapes —
+  drives reactive icons that transform between two STROKE shapes —
   configured wrappers live in `ui/morphs.tsx` (chevron open/close,
-  grid↔flask on tool tabs, maximize↔restore). Icon data comes from
-  the `iconoir` package as `?raw` svg parsed ONCE at module scope
-  (plan-cache requirement). Binary state swaps (pin fill) stay keyed
-  re-mounts; morphs are for shape-to-shape transitions.
+  maximize↔restore). Icon data comes from the `iconoir` package as
+  `?raw` svg parsed ONCE at module scope (plan-cache requirement).
+  Binary state swaps (pin fill) stay keyed re-mounts; morphs are for
+  shape-to-shape transitions. Tool tabs are the exception: they swap
+  the grid glyph for the tool's OWN provider mark (`ToolTabMark`), a
+  spring cross-morph, because provider logos are fill-drawn and
+  `svgToIcon` honestly rejects fill-only icons — never fake a fill
+  logo into a path morph.
+- **Morph buttons (`btn-morph`):** the label⇄icon hover morph (new
+  skill, editor edit/delete) keeps the label in NORMAL FLOW — it alone
+  sizes the button and keeps its footprint at opacity 0, so the button
+  never changes size or collapses — while the icon sits absolutely
+  centered over it and rotates in. Never animate the button's width;
+  never stack the states with grid (grid-area stacking rendered as an
+  unpainted button in real browsers); pointer-gated, reduced-motion
+  keeps the fade only.
+- **Card shimmer ("shooting star"):** on hover two silver heads — a
+  bright one with a comet tail plus a fainter one ~150° behind — orbit
+  the card's border ring (mask-composite ring trick, `@property
+  --sweep` angle, linear timing so there's no per-revolution speed dip;
+  hover-gated, reduced-motion removes it). Every mouseenter rolls a
+  fresh `--sweep-offset` start angle AND orbit duration, so the star
+  never launches from the same spot twice and a hovered grid never
+  sweeps in lockstep.
 - **Tooltips:** `[data-tip]` / `[data-tip-side="top"]` css tooltips
   (350ms intent delay) replace native `title` on window chrome, pins
   and the scope chip. Prefer them over `title` on interactive chrome.
 - **Perf contract (60fps):** backdrop blur only on floating layers
-  (popover/modals, 14px) — never the full-height panels; every motion
-  transform uses full `transform` strings (GPU-composited), never
-  x/y/scale shorthands.
+  (popover/modals, 14px) — never the full-height panels; declarative
+  motion states (initial/animate/exit) use full `transform` strings
+  (GPU-composited). Gesture props are the exception — see the doctrine.
 - **Motion:** the `motion` package (Framer) via `motion/react`.
   Transform ownership is exclusive: if motion animates an element, CSS
   must not transition its transform. `MotionConfig reducedMotion="user"`
@@ -110,8 +142,12 @@ src/
   `cubic-bezier(0.23,1,0.32,1)` (`--ease-out` token), scaling from
   0.95–0.97 out of the trigger's transform-origin — never `scale(0)`,
   never `ease-in`, never >300ms on UI. Exits mirror entries but
-  faster. In motion props use full `transform` strings (GPU) rather
-  than x/y/scale shorthands. Hover motion stays near-imperceptible
+  faster. In declarative motion props (initial/animate/exit) use full
+  `transform` strings (GPU); in GESTURE props (`whileTap`,
+  `whileHover`) use the `scale`/`x`/`y` shorthands instead — a full
+  `transform` string there left controls stuck unpainted in real
+  browsers (the "disappearing buttons" bug the shorthands fixed).
+  Hover motion stays near-imperceptible
   (≤2px) and is CSS-owned with a reduced-motion gate. Keyboard-
   initiated actions (⌘K) get no animation.
 - **Edge light ("streak"):** every raised dark surface carries a 1px
@@ -143,9 +179,12 @@ The OS title bar is replaced with a Figma-style one (`layout/TitleBar.tsx`):
   hidden on macOS).
 - **Dropdown:** the arrow opens a command popover
   (`ui/CommandMenu.tsx`, ported from Watermelon UI's combobox-1):
-  search input, grouped list (actions / tools / projects), empty state,
-  check on the active view, full keyboard support. Reuse `CommandMenu`
-  for any future searchable-select surface instead of building menus.
+  search input, grouped list ordered VIEWS-first (tools / projects,
+  hint "view" revealed on row hover, then one-shot actions), empty state, check on the
+  active view, full keyboard support. Pointer selection plays a 220ms
+  press dip (in-out) BEFORE the action runs, so the press is seen;
+  keyboard selection stays instant. Reuse `CommandMenu` for any future
+  searchable-select surface instead of building menus.
 - **Tab state** lives in `App.tsx` (`TitleTab[]`, `src/types/tab.ts`);
   the active tab is *derived* from the current view, never stored, so
   sidebar and tabs can't desync. Closing the active tab falls back to
@@ -159,7 +198,8 @@ The OS title bar is replaced with a Figma-style one (`layout/TitleBar.tsx`):
 ## Testing
 
 ```bash
-npm test              # vitest, runs src/utils/__tests__
+npm test              # vitest: utils specs, api fixture surface, and the
+                      # app click-through suite (src/**/__tests__)
 npx tsc --noEmit      # strict typecheck, must pass clean
 ```
 

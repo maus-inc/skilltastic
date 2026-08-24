@@ -228,7 +228,26 @@ body,
   display: flex;
   flex-shrink: 0;
   color: currentColor;
-  opacity: 0.75;
+  opacity: 0.9;
+}
+
+/* tool-tab mark cross-morph: grid glyph at rest, the tool's own model
+   mark springs in on hover — both states stack in one cell so the tab
+   never shifts while morphing */
+.tab-mark {
+  display: inline-grid;
+  place-items: center;
+}
+
+.tab-mark-slot {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-mark-img {
+  display: block;
 }
 
 .tb-tab-label {
@@ -345,8 +364,13 @@ body,
   font-size: 10.5px;
   font-weight: 500;
   letter-spacing: 0;
+  text-transform: none; /* never inherit casing from the host (e.g. uppercase labels) */
   color: #ececec;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.45;
+  max-width: min(280px, calc(100vw - 24px));
+  width: max-content;
   opacity: 0;
   pointer-events: none;
   transition: opacity 120ms var(--ease-out), transform 150ms var(--ease-out);
@@ -369,6 +393,30 @@ body,
 
 [data-tip-side="top"]:hover::after {
   transform: translateX(-50%) translateY(0);
+}
+
+/* start-aligned: anchor the tip's left edge at the host so long tips
+   grow inward instead of clipping at container edges */
+[data-tip-align="start"]::after {
+  left: 0;
+  transform: translateY(-2px);
+}
+
+[data-tip-side="top"][data-tip-align="start"]::after {
+  left: 0;
+  transform: translateY(2px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-tip-align="start"]:hover::after {
+    transform: translateY(0);
+    transition-delay: 350ms;
+  }
+
+  [data-tip-side="top"][data-tip-align="start"]:hover::after {
+    transform: translateY(0);
+    transition-delay: 350ms;
+  }
 }
 
 /* command popover (watermelon combobox-1 port — opened by the arrow) */
@@ -471,6 +519,38 @@ body,
   cursor: default;
 }
 
+/* press dip: a pointer click plays the in-out press first, and only
+   after the dip lands does the action run — the user sees the press */
+.cmd-item.pressed {
+  background: #2e2e2e;
+  box-shadow: var(--streak);
+}
+
+.cmd-item.pressed .cmd-item-inner {
+  animation: cmd-dip 220ms var(--ease-out);
+}
+
+@keyframes cmd-dip {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  40% {
+    transform: translateY(1px) scale(0.96);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmd-item.pressed .cmd-item-inner {
+    animation: none;
+  }
+}
+
 /* the nudge lives on an inner wrapper so it never fights motion's
    inline transform on the row itself (transform ownership rule) */
 .cmd-item-inner {
@@ -535,10 +615,18 @@ body,
   flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 8px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-faint);
-  opacity: 0.7;
+  /* quiet until the row is hovered (or arrow-highlighted, the menu's
+     keyboard equivalent of hover) */
+  opacity: 0;
+  transition: opacity 120ms var(--ease-out);
+}
+
+.cmd-item:hover .cmd-item-hint,
+.cmd-item[data-highlighted="true"] .cmd-item-hint {
+  opacity: 0.8;
 }
 
 /* github redirect arrow: beckons with a diagonal loop on row hover */
@@ -782,7 +870,7 @@ body,
   width: 12px;
   height: 12px;
   flex-shrink: 0;
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
 .nav-item.active .nav-mark,
@@ -1145,7 +1233,7 @@ body,
   gap: 10px;
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 9px 12px;
   box-shadow: var(--streak), 0 1px 1px rgba(0, 0, 0, 0.3);
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -1163,17 +1251,30 @@ body,
   content: "";
   position: absolute;
   inset: -1px;
-  border-radius: 11px;
+  border-radius: 9px;
   padding: 1px;
-  background: conic-gradient(
-    from var(--sweep),
-    transparent 0deg,
-    transparent 286deg,
-    rgba(190, 190, 190, 0.12) 306deg,
-    rgba(214, 214, 214, 0.55) 336deg,
-    rgba(255, 255, 255, 0.95) 352deg,
-    transparent 360deg
-  );
+  /* two shooting stars: a bright head with a long comet tail, plus a
+     fainter shorter one ~150° behind — the orbit reads organic instead
+     of a single predictable dot */
+  background:
+    conic-gradient(
+      from var(--sweep),
+      transparent 0deg,
+      transparent 292deg,
+      rgba(190, 190, 190, 0.08) 310deg,
+      rgba(205, 205, 205, 0.28) 330deg,
+      rgba(224, 224, 224, 0.6) 348deg,
+      rgba(255, 255, 255, 0.95) 357deg,
+      transparent 360deg
+    ),
+    conic-gradient(
+      from calc(var(--sweep) + 150deg),
+      transparent 0deg,
+      transparent 320deg,
+      rgba(255, 255, 255, 0.18) 344deg,
+      rgba(255, 255, 255, 0.45) 357deg,
+      transparent 360deg
+    );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -1186,16 +1287,19 @@ body,
 @media (hover: hover) and (pointer: fine) {
   .skill-card:hover::after {
     opacity: 1;
-    animation: card-sweep 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    /* linear orbit — no per-revolution speed dip to catch the eye; the
+       interest comes from the dual heads and the per-hover random start
+       angle + speed the card sets on mouseenter */
+    animation: card-sweep var(--sweep-dur, 2.4s) linear infinite;
   }
 }
 
 @keyframes card-sweep {
   from {
-    --sweep: 0deg;
+    --sweep: var(--sweep-offset, 0deg);
   }
   to {
-    --sweep: 360deg;
+    --sweep: calc(360deg + var(--sweep-offset, 0deg));
   }
 }
 
@@ -1434,12 +1538,37 @@ body,
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
 }
 
+/* whole-button press dip: pointer clicks play this in-out first, and the
+   action runs after — the user sees the press (Button.tsx) */
+.wm-btn.dipping {
+  animation: btn-dip 200ms var(--ease-out);
+}
+
+@keyframes btn-dip {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(1px) scale(0.96);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wm-btn.dipping {
+    animation: none;
+  }
+}
+
 /* variants */
 
 .wm-btn--default {
   background: var(--accent);
   color: #000;
-  box-shadow: var(--streak-black), 0 1px 2px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--streak-black), 0 1px 2px rgba(0, 0, 0, 0.45),
+    0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 .wm-btn--default:hover {
@@ -1505,37 +1634,42 @@ body,
 
 /* morphing button: text at rest, condenses to a plus on hover */
 
+/* btn-morph — label⇄icon morph with a STABLE footprint. The label stays
+   in normal flow (it alone sizes the button, and keeps its footprint at
+   opacity 0, so the button never changes size or collapses); the icon
+   sits absolutely centered over it. Hover fades the label and rotates
+   the icon in. Never animate width; pointer-gated; reduced-motion keeps
+   the fade only. */
 .btn-morph {
   position: relative;
-  overflow: hidden;
 }
 
 .btn-morph-label {
   display: block;
-  max-width: 80px;
-  white-space: nowrap;
-  overflow: hidden;
-  transition: max-width 220ms var(--ease-out), opacity 150ms var(--ease-out);
+  transition: opacity 150ms var(--ease-out), transform 220ms var(--ease-out);
 }
 
-.btn-morph-plus {
+.btn-morph-icon {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
   opacity: 0;
-  transform: rotate(-90deg) scale(0.7);
+  transform: rotate(-90deg) scale(0.6);
   transition: opacity 150ms var(--ease-out), transform 220ms var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .btn-morph:hover .btn-morph-label {
-    max-width: 14px; /* narrows toward square while staying tappable */
+  .btn-morph:hover .btn-morph-label,
+  .tua:not(.armed):hover .btn-morph-label {
     opacity: 0;
+    transform: scale(0.85);
   }
 
-  .btn-morph:hover .btn-morph-plus {
+  .btn-morph:hover .btn-morph-icon,
+  .tua:not(.armed):hover .btn-morph-icon {
     opacity: 1;
     transform: rotate(0deg) scale(1);
   }
@@ -1543,9 +1677,147 @@ body,
 
 @media (prefers-reduced-motion: reduce) {
   .btn-morph-label,
-  .btn-morph-plus {
+  .btn-morph-icon {
     transition: opacity 150ms var(--ease-out);
   }
+  .btn-morph:hover .btn-morph-label,
+  .btn-morph:hover .btn-morph-icon {
+    transform: none;
+  }
+}
+
+/* timed-undo destructive confirm (watermelon time-undo-action, restyled
+   to the app's tokens): solid destructive at rest, danger-tinted + bordered
+   while armed, chips carry the destructive fill + streak like wm-btn--destructive */
+
+.tua {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  outline: none;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  background: rgba(239, 68, 68, 0.6);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(0, 0, 0, 0.45);
+  transition: background 0.2s var(--ease-out), border-color 0.2s var(--ease-out),
+    color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+
+.tua.armed {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #fca5a5;
+  box-shadow: var(--streak);
+}
+
+/* countdown over: the explicit execute button — icon-only, and a bright
+   surface, so it carries the full depth treatment: top white streak,
+   inset bottom shade + faint dark ring (streak-black), contact + cast */
+.tua.ready {
+  background: rgba(239, 68, 68, 0.85);
+  border-color: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1.5px 0 rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.tua.ready .tua-inner {
+  gap: 0;
+  padding: 0 7px;
+}
+
+.tua-ready-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tua.ready:hover {
+  background: rgba(239, 68, 68, 0.95);
+}
+
+.tua:focus-visible {
+  box-shadow: 0 0 0 1px var(--bg), 0 0 0 3px rgba(239, 68, 68, 0.4);
+}
+
+.tua:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.tua-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 100%;
+  padding: 0 10px;
+}
+
+.tua-inner.armed,
+.tua.armed .tua-inner {
+  gap: 4px;
+  padding: 0 5px;
+}
+
+/* anchors the absolutely-centered hover icon, like .btn-morph does */
+.tua-textwrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* the countdown rides the shared odometer — restyled for the chip */
+.tua-count .rolling-label {
+  opacity: 1;
+  height: 12px;
+  min-width: 12px;
+  line-height: 12px;
+  font-size: 10px;
+  color: #fff;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.tua-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border-radius: 5px;
+  background: rgba(239, 68, 68, 0.7);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.tua-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: rgba(239, 68, 68, 0.7);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.tua-text {
+  font-size: 11.5px;
+  white-space: nowrap;
 }
 
 /* sizes (compact-scaled from the source's 32/36/40) */
@@ -1605,8 +1877,8 @@ body,
 }
 
 .modal {
-  width: 640px;
-  max-height: 80vh;
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(80vh, calc(100vh - 32px));
   background: rgba(18, 18, 18, 0.92);
   backdrop-filter: var(--blur-panel);
   -webkit-backdrop-filter: var(--blur-panel);
@@ -1624,6 +1896,7 @@ body,
   gap: 12px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .modal-header .title {
@@ -1651,10 +1924,10 @@ body,
 }
 
 .markdown-body {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0; /* the body scrolls; the footer must never be clipped */
   overflow-y: auto;
   padding: 20px 24px;
-  min-height: 360px;
   font-size: 13px;
   line-height: 1.65;
   color: var(--text-dim);
@@ -1734,9 +2007,12 @@ body,
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  row-gap: 8px;
   gap: 8px;
   padding: 12px 16px;
   border-top: 1px solid var(--border);
+  flex-shrink: 0; /* actions stay visible no matter how short the window */
 }
 
 .modal-footer .footer-spacer {
@@ -1787,14 +2063,25 @@ body,
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 7px 10px 8px;
+  flex-shrink: 0;
 }
 
 .readers-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
   margin-bottom: 5px;
+}
+
+/* the shared-folder note lives in a quiet tooltip behind an i mark */
+.readers-info {
+  display: flex;
+  color: var(--text-faint);
+  opacity: 0.75;
 }
 
 .readers-chips {
@@ -1803,17 +2090,10 @@ body,
   gap: 4px;
 }
 
-.readers-warn {
-  margin-top: 6px;
-  font-size: 10px;
-  color: var(--text-faint);
-  line-height: 1.4;
-}
-
 /* ---------- add-project modal ---------- */
 
 .add-modal {
-  width: 540px;
+  width: min(540px, calc(100vw - 32px));
 }
 
 .add-modal-body {
@@ -1821,8 +2101,9 @@ body,
   flex-direction: column;
   gap: 10px;
   padding: 14px 16px;
-  min-height: 280px;
-  max-height: 60vh;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
 }
 
 .add-search {
@@ -2089,4 +2370,144 @@ body,
 
 .create-modal .modal-footer {
   flex-shrink: 0;
+}
+
+/* ---------- skill editor workbench (CodeMirror 6, VS Code-style chrome) ---------- */
+
+.ed-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.ed-crumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.ed-crumb-title {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ed-crumb-file {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.ed-readers {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.ed-reader-mark {
+  width: 12px;
+  height: 12px;
+  opacity: 0.85;
+}
+
+.ed-crumb-path {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.ed-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.ed-cm {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ed-cm .cm-editor {
+  height: 100%;
+  outline: none;
+}
+
+.ed-divider {
+  width: 5px;
+  cursor: col-resize;
+  background: transparent;
+  border-left: 1px solid var(--border);
+  flex-shrink: 0;
+  transition: background 150ms var(--ease-out);
+}
+
+.ed-divider:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ed-preview {
+  width: var(--preview-pct, 42%);
+  flex: none;
+  min-height: 0;
+  border-left: none;
+}
+
+.ed-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 12px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: var(--streak);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.ed-status-item.warn {
+  color: #f59e0b;
+}
+
+.ed-status-item.dirty {
+  color: #fca5a5;
+}
+
+.ed-status .footer-spacer {
+  flex: 1;
+}
+
+/* dirty dot on editor tabs */
+.tb-tab-dirty {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fca5a5;
+  flex-shrink: 0;
+}
+
+.unsaved-body {
+  padding: 16px;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.unsaved-modal {
+  width: min(420px, calc(100vw - 32px));
 }

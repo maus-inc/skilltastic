@@ -54,14 +54,54 @@ default to 14px inside buttons and don't shrink.
 
 | Surface | Old class | Now |
 | --- | --- | --- |
-| Topbar "new skill" | `.btn` | `default` / `sm` |
-| Topbar "forget project" | `.icon-btn danger` | `destructive` / `sm` |
+| Topbar "new skill" | `.btn` | `default` / `sm` (btn-morph) |
+| Topbar "forget project" | `.icon-btn danger` | `TimedUndoAction` (arm → countdown → commit) |
 | Modal close × | `.icon-btn square` | `ghost` / `icon-sm` |
-| Editor: edit-mode toggle | `.btn active` | active → `secondary`, idle → `outline` |
-| Editor: delete | `.btn danger` | `destructive` / `sm` |
+| Editor: edit-mode toggle | `.btn active` | active → `secondary`, idle → `outline` (btn-morph) |
+| Editor: delete | `.btn danger` | `TimedUndoAction` (arm → countdown → commit) |
 | Editor: view (cancel) | `.btn` | `ghost` / `sm` |
 | Editor: save | `.btn primary` | `default` / `sm` |
 | Add-project: rescan/browse | `.btn` | `outline` / `sm` |
 | Create-skill: submit | `.btn` | `default` / `sm` |
 
 `.btn` and `.icon-btn` are removed; don't reintroduce them.
+
+## Press dip (pointer feedback)
+
+Every `Button` and every `CommandMenu` entry plays a 200ms in-out press
+dip on POINTER clicks before the action runs — the WHOLE button dips
+(`translateY(1px) scale(0.96)` and back), not just its label, so the
+press is seen before the consequence. Keyboard activation
+(`e.detail === 0`) acts instantly with no animation; reduced motion
+drops the dip. The old `whileTap` spring left Button for this — one
+transform owner per element. The `default` variant additionally carries
+a cast shadow (`0 4px 12px`) so raised primary actions read with depth.
+
+## Destructive confirmation: `TimedUndoAction`
+
+Destructive actions never use `window.confirm` and never fire on a single
+click. `ui/TimedUndoAction.tsx` (the Watermelon `time-undo-action` pattern,
+restyled to these tokens) is the only confirmation UX:
+
+- **rest:** solid destructive fill (`wm-btn--destructive` colors/streak),
+  24px height, 7px radius, center-aligned — reads as a plain destructive
+  button; hover morphs the label into `hoverIcon` like every action button.
+- **armed (first click):** the control springs wider; fill drops to a
+  danger tint with a danger border, and `[undo mark][label][countdown]`
+  appear center-aligned with the per-character spring stagger (no blur
+  filters — perf contract). The countdown chip is mono tabular-nums on
+  the destructive fill. Clicking it cancels back to rest.
+- **ready (countdown finished):** the control collapses to an
+  icon-only `[trash]` execute button — the label would only soften the
+  moment. It's a bright surface, so it carries the full depth
+  treatment: top white streak, inset bottom shade + dark ring
+  (streak-black), contact + cast shadows. Only clicking it commits.
+  Escape or an outside press disarms from armed/ready; unmount/teardown
+  never commits (closing a modal is not consent).
+- Width animates via a measured spring (`react-use-measure`); this is the
+  one sanctioned width animation (stateful expand, not a hover morph).
+- `useSkillMutations.remove` executes only; confirmation lives in the UI
+  component that calls it.
+
+New destructive surface = wrap it in `TimedUndoAction`; do not add
+`confirm()` dialogs.

@@ -1,4 +1,4 @@
-import { invoke } from "./runtime";
+import { invoke, IN_TAURI, previewPickProjectFolder } from "./runtime";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { DetectedProject, ProjectInfo, Skill } from "../types";
 
@@ -37,6 +37,9 @@ export const projectsApi = {
     return invoke("list_project_skills", { path });
   },
   async pickProjectFolder(): Promise<string | null> {
+    // the native folder-picker dialog exists only in the desktop app; the
+    // browser preview cycles plausible folders so the flow stays testable
+    if (!IN_TAURI) return previewPickProjectFolder();
     const selected = await open({ directory: true, multiple: false });
     return typeof selected === "string" ? selected : null;
   },

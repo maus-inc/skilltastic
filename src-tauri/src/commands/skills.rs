@@ -1,4 +1,4 @@
-use super::{find_skill_by_manifest, manifest_is_manageable};
+use super::{find_skill_by_manifest, manageable_manifest};
 use crate::projects;
 use crate::skills::{self, tools::ToolEntry, Skill};
 use std::fs;
@@ -22,28 +22,35 @@ pub fn list_skills() -> Vec<Skill> {
 
 #[tauri::command]
 pub fn set_skill_enabled(app: AppHandle, id: String, enabled: bool) -> Result<Skill, String> {
-    let path = Path::new(&id);
-    if !manifest_is_manageable(&app, path) {
-        return Err("not a managed skill path".into());
-    }
-    let new_manifest = skills::toggle_enabled(path, enabled).map_err(|e| e.to_string())?;
+    // toggling is link-aware: it must move the managed entry (the link
+    // node for a shared skill), never the canonical target — see
+    // ManagedManifest
+    let managed = manageable_manifest(&app, Path::new(&id))?;
+    let new_manifest =
+        skills::toggle_enabled(&managed.raw, enabled).map_err(|e| e.to_string())?;
 
     find_skill_by_manifest(&app, &new_manifest).ok_or_else(|| "skill not found after toggle".into())
 }
 
 #[tauri::command]
 pub fn delete_skill(app: AppHandle, id: String) -> Result<(), String> {
-    let path = Path::new(&id);
-    if !manifest_is_manageable(&app, path) {
-        return Err("not a managed skill path".into());
-    }
-    skills::delete_skill_dir(path).map_err(|e| e.to_string())?;
+    // deletion runs on the managed entry: for a symlinked skill that
+    // unlinks the link and leaves the user's original folder alone
+    let managed = manageable_manifest(&app, Path::new(&id))?;
+    skills::delete_skill_dir(&managed.raw).map_err(|e| e.to_string())?;
     // A project count is only a cache; clear it after a mutation rather than
-    // scanning the project again in the background.
+    // scanning the project again in the background. Stored paths are
+    // canonical since enrollment normalizes them, but tolerate older
+    // records by also comparing canonical forms.
     if let Some(project) = projects::list(&app)
         .unwrap_or_default()
         .into_iter()
-        .find(|p| path.starts_with(&p.path))
+        .find(|p| {
+            managed.canonical.starts_with(&p.path)
+                || fs::canonicalize(&p.path)
+                    .map(|cp| managed.canonical.starts_with(cp))
+                    .unwrap_or(false)
+        })
     {
         let _ = projects::clear_skill_count(&app, &project.path);
     }
@@ -52,17 +59,14 @@ pub fn delete_skill(app: AppHandle, id: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn read_skill_content(app: AppHandle, id: String) -> Result<String, String> {
-    if !manifest_is_manageable(&app, Path::new(&id)) {
-        return Err("not a managed skill path".into());
-    }
-    fs::read_to_string(&id).map_err(|e| e.to_string())
+    // content ops use the canonical snapshot: a link swapped between
+    // validation and use changes nothing, writes cannot escape a root
+    let managed = manageable_manifest(&app, Path::new(&id))?;
+    fs::read_to_string(managed.canonical).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn write_skill_content(app: AppHandle, id: String, content: String) -> Result<(), String> {
-    let path = Path::new(&id);
-    if !manifest_is_manageable(&app, path) {
-        return Err("not a managed skill path".into());
-    }
-    fs::write(path, content).map_err(|e| e.to_string())
+    let managed = manageable_manifest(&app, Path::new(&id))?;
+    fs::write(managed.canonical, content).map_err(|e| e.to_string())
 }

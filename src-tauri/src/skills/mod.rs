@@ -148,7 +148,7 @@ fn scan_dir(tool: AgentTool, dir: &Path, scope: SkillScope, enabled: bool) -> Ve
 /// Minimal YAML frontmatter reader for the two fields Skilltastic cares
 /// about (`name`, `description`). Intentionally not a full YAML parser —
 /// SKILL.md frontmatter is a flat key: value list.
-fn parse_frontmatter(raw: &str) -> (String, String) {
+pub(crate) fn parse_frontmatter(raw: &str) -> (String, String) {
     let mut name = String::new();
     let mut description = String::new();
 
@@ -163,11 +163,7 @@ fn parse_frontmatter(raw: &str) -> (String, String) {
         let Some((key, value)) = line.split_once(':') else {
             continue;
         };
-        let value = value
-            .trim()
-            .trim_matches('"')
-            .trim_matches('\'')
-            .to_string();
+        let value = decode_yaml_scalar(value);
         match key.trim() {
             "name" => name = value,
             "description" => description = value,
@@ -175,6 +171,43 @@ fn parse_frontmatter(raw: &str) -> (String, String) {
         }
     }
     (name, description)
+}
+
+/// Decodes the two quoting styles this app reads and writes. Double-quoted
+/// YAML scalars carry escapes (`\n`, `\t`, `\r`, `\"`, `\\` — exactly what
+/// `create_skill`'s emitter produces); single-quoted ones double `''` to
+/// escape a quote. Unquoted values pass through untouched. Without this a
+/// created description containing a newline or quote would surface with
+/// literal escape text.
+pub(crate) fn decode_yaml_scalar(value: &str) -> String {
+    let v = value.trim();
+    if let Some(inner) = v.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
+        let mut out = String::with_capacity(inner.len());
+        let mut chars = inner.chars();
+        while let Some(c) = chars.next() {
+            if c != '\\' {
+                out.push(c);
+                continue;
+            }
+            match chars.next() {
+                Some('n') => out.push('\n'),
+                Some('t') => out.push('\t'),
+                Some('r') => out.push('\r'),
+                Some('"') => out.push('"'),
+                Some('\\') => out.push('\\'),
+                Some(other) => {
+                    out.push('\\');
+                    out.push(other);
+                }
+                None => out.push('\\'),
+            }
+        }
+        return out;
+    }
+    if let Some(inner) = v.strip_prefix('\'').and_then(|s| s.strip_suffix('\'')) {
+        return inner.replace("''", "'");
+    }
+    v.to_string()
 }
 
 pub fn toggle_enabled(skill_path: &Path, enable: bool) -> std::io::Result<PathBuf> {
@@ -244,6 +277,14 @@ pub fn delete_skill_dir(skill_path: &Path) -> std::io::Result<()> {
     let dir = skill_path
         .parent()
         .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "invalid skill path"))?;
+    // A symlinked skill points at a folder elsewhere on disk — usually
+    // another tool's skills dir, the standard cross-tool sharing setup.
+    // Deleting must unlink the link itself and NEVER recurse into the
+    // target: remove_dir_all would follow the link and wipe the user's
+    // original folder. symlink_metadata inspects the link node itself.
+    if fs::symlink_metadata(dir)?.file_type().is_symlink() {
+        return fs::remove_file(dir);
+    }
     fs::remove_dir_all(dir)
 }
 
@@ -281,6 +322,18 @@ pub fn adapter_for(tool: AgentTool) -> Box<dyn SkillAdapter> {
 
 pub fn home_dir() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from("."))
+}
+
+/// The user-level config directory, honoring `$XDG_CONFIG_HOME` per the
+/// XDG Base Directory spec (only absolute values count — the spec says
+/// relative ones must be ignored). Falls back to `~/.config`, which is
+/// also the documented location on macOS and Windows for the tools that
+/// use it.
+pub fn config_dir() -> PathBuf {
+    std::env::var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .unwrap_or_else(|| home_dir().join(".config"))
 }
 
 pub fn discover_project_skills(project_root: &Path) -> Vec<Skill> {
@@ -356,6 +409,50 @@ mod tests {
         assert!(
             re_enabled_manifest.is_file(),
             "symlink must still resolve once re-enabled"
+        );
+
+        fs::remove_dir_all(&skills_dir).unwrap();
+        fs::remove_dir_all(&real_dir).unwrap();
+    }
+
+    #[test]
+    fn deleting_a_plain_skill_removes_its_folder() {
+        let skills_dir = temp_skills_dir("delete-plain");
+        let skill_dir = skills_dir.join("victim");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(skill_dir.join(MANIFEST_FILE), "---\nname: victim\n---\n").unwrap();
+
+        delete_skill_dir(&skill_dir.join(MANIFEST_FILE)).expect("delete should succeed");
+        assert!(!skill_dir.exists());
+
+        fs::remove_dir_all(&skills_dir).unwrap();
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn deleting_a_symlinked_skill_never_follows_the_link() {
+        // The data-loss case: a skill linked into a tool's folder from
+        // elsewhere on disk. Deleting it must unlink the link node only —
+        // the user's original folder has to survive untouched.
+        let real_dir = std::env::temp_dir().join(format!(
+            "skilltastic-test-delreal-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&real_dir);
+        fs::create_dir_all(&real_dir).unwrap();
+        fs::write(real_dir.join(MANIFEST_FILE), "---\nname: linked\n---\n").unwrap();
+        fs::write(real_dir.join("precious.txt"), "do not delete").unwrap();
+
+        let skills_dir = temp_skills_dir("delete-symlink");
+        let link = skills_dir.join("linked");
+        std::os::unix::fs::symlink(&real_dir, &link).unwrap();
+
+        delete_skill_dir(&link.join(MANIFEST_FILE)).expect("delete should succeed");
+
+        assert!(!link.exists(), "the link itself must be gone");
+        assert!(
+            real_dir.join("precious.txt").is_file(),
+            "the original folder must survive — deleting a linked skill never follows the link"
         );
 
         fs::remove_dir_all(&skills_dir).unwrap();

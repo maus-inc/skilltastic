@@ -293,6 +293,29 @@ mod tests {
             content,
             "---\nname: my-skill\ndescription: \"what it does\\nand when to use it\"\n---\n"
         );
+        // ...and the app's own frontmatter reader decodes it back exactly,
+        // so created skills display what the user typed
+        let (name, parsed) = crate::skills::parse_frontmatter(&content);
+        assert_eq!(name, "my-skill");
+        assert_eq!(parsed, description);
+
+        let _ = fs::remove_dir_all(managed.parent().unwrap());
+    }
+
+    #[test]
+    fn hostile_descriptions_round_trip_through_the_frontmatter() {
+        let (managed, _unmanaged) = fresh_roots("hostile");
+        let roots = vec![managed.clone()];
+
+        // quotes, backslashes, escapes and newlines must all survive
+        // the write→read loop unchanged
+        let description = "say \"hi\" \\ use \\n literally\nthen a real break\tand a tab";
+        let manifest =
+            create_skill_manifest(&roots, &managed, "tricky", description).expect("creation");
+        let content = fs::read_to_string(&manifest).unwrap();
+        let (name, parsed) = crate::skills::parse_frontmatter(&content);
+        assert_eq!(name, "tricky");
+        assert_eq!(parsed, description);
 
         let _ = fs::remove_dir_all(managed.parent().unwrap());
     }

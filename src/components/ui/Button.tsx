@@ -1,5 +1,9 @@
-import { forwardRef, type ButtonHTMLAttributes } from "react";
-import { motion } from "motion/react";
+import {
+  forwardRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type MouseEvent,
+} from "react";
 
 export type ButtonVariant =
   | "default"
@@ -11,30 +15,56 @@ export type ButtonVariant =
 
 export type ButtonSize = "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-lg";
 
-interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onDrag" | "onDragStart" | "onDragEnd" | "onAnimationStart"> {
+interface ButtonProps
+  extends Omit<
+    ButtonHTMLAttributes<HTMLButtonElement>,
+    "onDrag" | "onDragStart" | "onDragEnd" | "onAnimationStart"
+  > {
   variant?: ButtonVariant;
   size?: ButtonSize;
 }
 
 /**
- * The app's button system — a plain-CSS + motion port of Watermelon UI's
- * button (shadcn CVA structure: 6 variants × 6 sizes, focus ring,
- * disabled and aria-invalid states), scaled to this app's compact
- * density. Full spec: docs/kb/09-button-system.md.
+ * The app's button system — a plain-CSS port of Watermelon UI's button
+ * (shadcn CVA structure: 6 variants × 6 sizes, focus ring, disabled and
+ * aria-invalid states), scaled to this app's compact density. Full spec:
+ * docs/kb/09-button-system.md.
+ *
+ * Pointer clicks play the whole-button press dip (in-out) BEFORE the
+ * action runs, so the press is seen; keyboard-activated clicks act
+ * instantly (doctrine: keyboard gets no animation).
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = "default", size = "default", className, type = "button", ...props }, ref) => (
-    <motion.button
-      ref={ref}
-      type={type}
-      whileTap={{ transform: "scale(0.97)" }}
-      transition={{ type: "spring", stiffness: 600, damping: 30 }}
-      className={["wm-btn", `wm-btn--${variant}`, `wm-btn--size-${size}`, className]
-        .filter(Boolean)
-        .join(" ")}
-      {...props}
-    />
-  ),
+  ({ variant = "default", size = "default", className, type = "button", onClick, ...props }, ref) => {
+    const [dipping, setDipping] = useState(false);
+
+    const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
+      if (!onClick || dipping) return;
+      if (e.detail === 0) {
+        onClick(e); // keyboard
+        return;
+      }
+      setDipping(true);
+      window.setTimeout(() => {
+        setDipping(false);
+        onClick(e);
+      }, 200);
+    };
+
+    return (
+      <button
+        ref={ref}
+        type={type}
+        className={
+          ["wm-btn", `wm-btn--${variant}`, `wm-btn--size-${size}`, dipping ? "dipping" : "", className]
+            .filter(Boolean)
+            .join(" ")
+        }
+        onClick={handleClick}
+        {...props}
+      />
+    );
+  },
 );
 
 Button.displayName = "Button";

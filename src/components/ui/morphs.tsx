@@ -1,10 +1,10 @@
+import { motion } from "motion/react";
 import { MorphIcon } from "morphicons/react";
 import { svgToIcon } from "morphicons/adapters";
 import chevronDownRaw from "iconoir/icons/regular/nav-arrow-down.svg?raw";
 import chevronUpRaw from "iconoir/icons/regular/nav-arrow-up.svg?raw";
-import viewGridRaw from "iconoir/icons/regular/view-grid.svg?raw";
-import flaskRaw from "iconoir/icons/regular/flask.svg?raw";
 import squareRaw from "iconoir/icons/regular/square.svg?raw";
+import { GridIcon } from "./icons";
 
 /**
  * Morphing icons (morphicons + Iconoir path data): reactive icons whose
@@ -14,8 +14,6 @@ import squareRaw from "iconoir/icons/regular/square.svg?raw";
  */
 const CHEVRON_DOWN = svgToIcon(chevronDownRaw);
 const CHEVRON_UP = svgToIcon(chevronUpRaw);
-const VIEW_GRID = svgToIcon(viewGridRaw);
-const FLASK = svgToIcon(flaskRaw);
 const SQUARE = svgToIcon(squareRaw);
 /** windows "restore down" — same glyph the static RestoreIcon draws */
 const RESTORE = svgToIcon(
@@ -40,17 +38,47 @@ export function MorphChevron({ open, size = 14 }: MorphProps & { open: boolean }
   );
 }
 
-/** Tool tabs: grid mark at rest, flask while hovered. */
-export function MorphGridFlask({ hover, size = 12 }: MorphProps & { hover: boolean }) {
+/**
+ * Tool tabs: grid glyph at rest, the tool's OWN model mark springs in on
+ * hover. This one is a cross-morph rather than a path morph — provider
+ * logos are fill-drawn, and morphicons' svgToIcon honestly rejects
+ * fill-only icons — so the two states swap with the same spring
+ * vocabulary instead (rotating out/in through center, exclusive
+ * transforms, reduced motion honored by the root MotionConfig).
+ */
+export function ToolTabMark({
+  hover,
+  mark,
+  label,
+  size = 12,
+}: MorphProps & { hover: boolean; mark: string; label: string }) {
+  const spring = { type: "spring", stiffness: 520, damping: 30, mass: 0.6 } as const;
   return (
-    <MorphIcon
-      icon={hover ? FLASK : VIEW_GRID}
-      size={size}
-      strokeWidth={1.5}
-      spring="snappy"
-      reducedMotion="user"
-      className="icn-morph"
-    />
+    // decorative: the tab's text label carries the accessible name
+    <span className="tab-mark" style={{ width: size, height: size }} aria-hidden="true">
+      <motion.span
+        className="tab-mark-slot"
+        initial={false}
+        animate={{
+          opacity: hover ? 0 : 1,
+          transform: hover ? "rotate(90deg) scale(0.5)" : "rotate(0deg) scale(1)",
+        }}
+        transition={spring}
+      >
+        <GridIcon size={size} />
+      </motion.span>
+      <motion.span
+        className="tab-mark-slot"
+        initial={false}
+        animate={{
+          opacity: hover ? 1 : 0,
+          transform: hover ? "rotate(0deg) scale(1)" : "rotate(-90deg) scale(0.5)",
+        }}
+        transition={spring}
+      >
+        <img className="tab-mark-img" src={mark} alt={label} width={size} height={size} />
+      </motion.span>
+    </span>
   );
 }
 

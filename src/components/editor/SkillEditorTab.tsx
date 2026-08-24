@@ -1,0 +1,319 @@
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { basicSetup } from "codemirror";
+import { EditorView, keymap } from "@codemirror/view";
+import { EditorState } from "@codemirror/state";
+import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import { linter, lintGutter } from "@codemirror/lint";
+import { autocompletion } from "@codemirror/autocomplete";
+import { api } from "../../api";
+import { renderMarkdown } from "../../utils/markdown";
+import { provider } from "../ui/providers";
+import { Button } from "../ui/Button";
+import { TimedUndoAction } from "../ui/TimedUndoAction";
+import { CheckIcon, FolderIcon, GlobeIcon, InfoCircleIcon, TrashIcon } from "../ui/icons";
+import { frontmatterDecorations } from "./frontmatter";
+import { lintSkillDoc, skillLinter } from "./lint";
+import { skillCompletion } from "./completion";
+import { skilltasticHighlight, skilltasticTheme } from "./theme";
+import type { Skill, ToolEntry } from "../../types";
+
+export interface EditorTabApi {
+  save: () => Promise<void>;
+  setContent: (text: string) => void;
+  togglePreview: () => void;
+  isDirty: () => boolean;
+}
+
+interface SkillEditorTabProps {
+  skill: Skill;
+  toolEntries: ToolEntry[];
+  onDirtyChange: (tabId: string, dirty: boolean) => void;
+  registerApi: (tabId: string, api: EditorTabApi | null) => void;
+  onDelete: (skill: Skill) => void;
+  tabId: string;
+}
+
+const PREVIEW_KEY = "skilltastic:editor-preview";
+
+/**
+ * The SKILL.md workbench: CodeMirror 6 engine under a VS Code-style
+ * chrome built from our own chrome vocabulary (breadcrumb bar, status
+ * bar, tab integration, split preview) — Watermelon-refined, token-
+ * themed. Linting, suggestions and completions are local and instant.
+ */
+export function SkillEditorTab({
+  skill,
+  toolEntries,
+  onDirtyChange,
+  registerApi,
+  onDelete,
+  tabId,
+}: SkillEditorTabProps) {
+  const mountRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<EditorView | null>(null);
+  const savedTextRef = useRef("");
+  const saveFnRef = useRef<() => Promise<void>>(async () => {});
+
+  const [loading, setLoading] = useState(true);
+  const [dirty, setDirty] = useState(false);
+  const [status, setStatus] = useState({ line: 1, col: 1, words: 0, chars: 0, lints: 0 });
+  const [previewOn, setPreviewOn] = useState(() => {
+    try {
+      return localStorage.getItem(PREVIEW_KEY) !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const [previewHtml, setPreviewHtml] = useState("");
+  const [previewPct, setPreviewPct] = useState(42);
+  const shellRef = useRef<HTMLDivElement>(null);
+
+  const folderName = useMemo(() => skill.path.split("/").slice(-1)[0], [skill.path]);
+  const seers = useMemo(
+    () => toolEntries.filter((t) => t.folders.some((f) => f.tool === skill.tool)),
+    [toolEntries, skill.tool],
+  );
+
+  // ---- editor lifecycle ----
+  useEffect(() => {
+    let cancelled = false;
+    api.readSkillContent(skill.id).then((text) => {
+      if (cancelled || !mountRef.current) return;
+      savedTextRef.current = text;
+      const view = new EditorView({
+        parent: mountRef.current,
+        state: EditorState.create({
+          doc: text,
+          extensions: [
+            basicSetup,
+            lintGutter(),
+            markdown({ base: markdownLanguage }),
+            frontmatterDecorations,
+            skilltasticTheme,
+            skilltasticHighlight,
+            EditorView.lineWrapping,
+            autocompletion({ override: [skillCompletion] }),
+            linter(skillLinter(folderName)),
+            keymap.of([
+              {
+                key: "Mod-s",
+                run: () => {
+                  void saveFnRef.current();
+                  return true;
+                },
+              },
+              {
+                key: "Mod-Shift-v",
+                run: () => {
+                  togglePreviewRef.current();
+                  return true;
+                },
+              },
+            ]),
+            EditorView.updateListener.of((u) => {
+              if (u.selectionSet || u.docChanged || u.focusChanged) {
+                const head = u.state.selection.main.head;
+                const line = u.state.doc.lineAt(head);
+                const text = u.state.doc.toString();
+                setStatus({
+                  line: line.number,
+                  col: head - line.from + 1,
+                  words: text.trim() ? text.trim().split(/\s+/).length : 0,
+                  chars: text.length,
+                  lints: lintSkillDoc(u.state.doc, folderName).length,
+                });
+              }
+              if (u.docChanged) {
+                const d = u.state.doc.toString() !== savedTextRef.current;
+                setDirty((prev) => {
+                  if (prev !== d) onDirtyChange(tabId, d);
+                  return d;
+                });
+              }
+            }),
+          ],
+        }),
+      });
+      viewRef.current = view;
+      setStatus((s) => ({
+        ...s,
+        chars: text.length,
+        words: text.trim() ? text.trim().split(/\s+/).length : 0,
+        lints: lintSkillDoc(view.state.doc, folderName).length,
+      }));
+      setLoading(false);
+
+      registerApi(tabId, {
+        save: () => saveFnRef.current(),
+        setContent: (t: string) => {
+          view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: t } });
+        },
+        togglePreview: () => togglePreviewRef.current(),
+        isDirty: () => view.state.doc.toString() !== savedTextRef.current,
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      registerApi(tabId, null);
+      viewRef.current?.destroy();
+      viewRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skill.id]);
+
+  // ---- actions ----
+  saveFnRef.current = async () => {
+    const view = viewRef.current;
+    if (!view) return;
+    const text = view.state.doc.toString();
+    await api.writeSkillContent(skill.id, text);
+    savedTextRef.current = text;
+    setDirty(false);
+    onDirtyChange(tabId, false);
+  };
+
+  const togglePreviewRef = useRef(() => {});
+  togglePreviewRef.current = () => {
+    setPreviewOn((on) => {
+      const next = !on;
+      try {
+        localStorage.setItem(PREVIEW_KEY, next ? "1" : "0");
+      } catch {
+        /* preference just won't persist */
+      }
+      return next;
+    });
+  };
+
+  // ---- preview rendering (debounced) ----
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!previewOn || !view) return;
+    const t = window.setTimeout(() => {
+      setPreviewHtml(renderMarkdown(view.state.doc.toString()));
+    }, 150);
+    return () => window.clearTimeout(t);
+  }, [previewOn, status.chars, loading]);
+
+  // ---- divider drag ----
+  const onDividerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const shell = shellRef.current;
+    if (!shell) return;
+    const move = (ev: PointerEvent) => {
+      const rect = shell.getBoundingClientRect();
+      const pct = ((rect.right - ev.clientX) / rect.width) * 100;
+      setPreviewPct(Math.min(70, Math.max(24, pct)));
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  return (
+    <div className="ed-shell" ref={shellRef}>
+      {/* breadcrumb bar */}
+      <div className="ed-crumb">
+        <span className="ed-crumb-title">
+          {skill.name} <span className="ed-crumb-file">/ SKILL.md</span>
+        </span>
+        <span
+          className="chip chip--iconic"
+          data-tip={skill.scope === "user" ? "global skill" : "project skill"}
+          data-tip-side="top"
+        >
+          {skill.scope === "user" ? <GlobeIcon size={10} /> : <FolderIcon size={10} />}
+          <span className="chip-label">{skill.scope === "user" ? "global" : "project"}</span>
+        </span>
+        <span className="ed-readers">
+          read by
+          {seers.length > 1 && (
+            <span
+              className="readers-info"
+              data-tip="These tools share one folder, so disabling or deleting the skill affects all of them."
+              data-tip-side="top"
+              data-tip-align="start"
+            >
+              <InfoCircleIcon size={12} />
+            </span>
+          )}
+          {seers.slice(0, 4).map((t) => (
+            <img
+              key={t.id}
+              className="ed-reader-mark"
+              src={provider((t.folders.find((f) => f.role === "own") ?? t.folders[0]).tool).icon}
+              alt={t.label}
+              title={t.label}
+            />
+          ))}
+        </span>
+        <span className="ed-crumb-path">{skill.path}</span>
+      </div>
+
+      {/* editor + preview split */}
+      <div className="ed-body" style={{ "--preview-pct": `${previewPct}%` } as CSSProperties}>
+        <div className="ed-cm" ref={mountRef}>
+          {loading && <div className="empty-state">loading…</div>}
+        </div>
+        {previewOn && (
+          <>
+            <div className="ed-divider" onPointerDown={onDividerDown} title="drag to resize" />
+            <div
+              className="markdown-body ed-preview"
+              dangerouslySetInnerHTML={{ __html: previewHtml }}
+            />
+          </>
+        )}
+      </div>
+
+      {/* status bar */}
+      <div className="ed-status">
+        <span className="ed-status-item">
+          Ln {status.line}, Col {status.col}
+        </span>
+        <span className="ed-status-item">
+          {status.words} words · {status.chars} chars
+        </span>
+        <span className={`ed-status-item ${status.lints ? "warn" : ""}`}>
+          {status.lints ? `${status.lints} suggestion${status.lints === 1 ? "" : "s"}` : "clean"}
+        </span>
+        <span className="footer-spacer" />
+        <span className={`ed-status-item ${dirty ? "dirty" : ""}`}>{dirty ? "● unsaved" : "saved"}</span>
+        <Button
+          variant="default"
+          size="sm"
+          className={dirty ? "btn-morph" : undefined}
+          disabled={!dirty}
+          onClick={() => void saveFnRef.current()}
+          aria-label="save"
+          title="⌘S"
+        >
+          <span className="btn-morph-label">save</span>
+          <span className="btn-morph-icon">
+            <CheckIcon size={14} />
+          </span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => togglePreviewRef.current()}
+          aria-label={previewOn ? "hide preview" : "show preview"}
+          title="⌘⇧V"
+        >
+          {previewOn ? "hide preview" : "preview"}
+        </Button>
+        <TimedUndoAction
+          label="delete"
+          undoLabel="cancel"
+          seconds={6}
+          onCommit={() => onDelete(skill)}
+          hoverIcon={<TrashIcon size={14} />}
+        />
+      </div>
+    </div>
+  );
+}

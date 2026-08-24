@@ -216,6 +216,27 @@ fn scan_for_git(dir: &Path, depth: usize, budget: &mut usize, out: &mut Candidat
 /// scan roots plus the standard macOS user folders). Claude Code's
 /// history contains launches in these, but suggesting them as projects
 /// is noise.
+fn in_protected_dir(path: &Path, home: &Path) -> bool {
+    const PROTECTED: &[&str] = &[
+        "Desktop", "Documents", "Downloads", "Movies", "Music", "Pictures",
+    ];
+    let Ok(rel) = path.strip_prefix(home) else {
+        return false;
+    };
+    // a `..` anywhere means the first component lies about where the path
+    // ends up (Documents/../x is not under Documents) — never exempt it
+    if rel
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
+        return false;
+    }
+    rel.components()
+        .next()
+        .and_then(|c| c.as_os_str().to_str())
+        .is_some_and(|first| PROTECTED.contains(&first))
+}
+
 fn is_container(path: &Path, home: &Path) -> bool {
     if path.components().count() <= home.components().count() {
         return true;
@@ -254,6 +275,13 @@ pub fn detect(exclude: &[String]) -> Vec<DetectedProject> {
     let mut list: Vec<DetectedProject> = candidates
         .into_iter()
         .filter(|(path, _)| !is_container(path, &home))
+        // History entries can point at folders that were moved or deleted;
+        // drop those instead of suggesting dead paths. Paths under
+        // TCC-protected locations are the exception: even a stat there can
+        // trigger a permission prompt, and a suggestion is not consent —
+        // projects::add validates existence when the user actually picks
+        // one.
+        .filter(|(path, _)| in_protected_dir(path, &home) || path.is_dir())
         .filter(|(path, _)| !excluded.contains(&normalize(&path.to_string_lossy())))
         .map(|(path, candidate)| {
             // A project path recovered from editor or agent history may live
@@ -307,6 +335,22 @@ mod tests {
         // network shares are not local paths
         assert_eq!(file_uri_to_path("file://server/share/doc"), None);
         assert_eq!(file_uri_to_path("file://example.com/a"), None);
+    }
+
+    #[test]
+    fn protected_dirs_are_recognized_under_home() {
+        let home = PathBuf::from("/Users/foo");
+        assert!(in_protected_dir(&home.join("Documents/project"), &home));
+        assert!(in_protected_dir(&home.join("Desktop/thing"), &home));
+        // normal dev locations are fair game for existence checks
+        assert!(!in_protected_dir(&home.join("Projects/app"), &home));
+        assert!(!in_protected_dir(&home.join("Documents").parent().unwrap().join("elsewhere"), &home));
+        // paths outside home are not "protected" here (nothing to prompt for)
+        assert!(!in_protected_dir(Path::new("/opt/project"), &home));
+        // `..` traversal must not inherit the protected exemption —
+        // Documents/../missing ends up outside Documents, so it gets
+        // existence-checked like any other candidate
+        assert!(!in_protected_dir(&home.join("Documents/../missing"), &home));
     }
 
     #[test]

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { ToolFolderInfo } from "../../types";
 import { Button } from "../ui/Button";
-import { PlusIcon } from "../ui/icons";
+import { TimedUndoAction } from "../ui/TimedUndoAction";
+import { FolderMinusIcon, PlusIcon } from "../ui/icons";
 
 interface TopbarProps {
   title: string;
@@ -66,7 +67,7 @@ export function Topbar({ title, subtitle, folders, query, onQueryChange, onForge
             aria-label="new skill"
           >
             <span className="btn-morph-label">new skill</span>
-            <span className="btn-morph-plus">
+            <span className="btn-morph-icon">
               <PlusIcon size={14} strokeWidth={2} />
             </span>
           </Button>
@@ -85,9 +86,13 @@ export function Topbar({ title, subtitle, folders, query, onQueryChange, onForge
           <kbd className={`kbd ${kbdHit ? "kbd--hit" : ""}`}>⌘K</kbd>
         </div>
         {onForgetProject && (
-          <Button variant="destructive" size="sm" onClick={onForgetProject}>
-            forget project
-          </Button>
+          <TimedUndoAction
+            label="forget project"
+            undoLabel="keep project"
+            seconds={6}
+            onCommit={onForgetProject}
+            hoverIcon={<FolderMinusIcon size={14} />}
+          />
         )}
       </div>
     </div>

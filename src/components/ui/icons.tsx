@@ -1,13 +1,16 @@
 import {
   ArrowUpRight,
   Check,
-  Flask,
+  EditPencil,
+  Eye,
   Folder,
+  FolderMinus,
   FolderPlus,
   Github,
   Globe,
   List,
   HomeSimple,
+  InfoCircle,
   Minus,
   MoreHoriz,
   NavArrowDown,
@@ -15,8 +18,11 @@ import {
   Pin,
   PinSolid,
   Plus,
+  Refresh,
   Search,
   Square,
+  Trash,
+  Undo,
   ViewGrid,
   Xmark,
 } from "iconoir-react";
@@ -97,10 +103,6 @@ export function GlobeIcon(props: IconProps) {
   return <Globe {...p(props)} />;
 }
 
-export function FlaskIcon(props: IconProps) {
-  return <Flask {...p(props)} />;
-}
-
 export function ListIcon(props: IconProps) {
   return <List {...p(props)} />;
 }
@@ -115,6 +117,34 @@ export function ArrowUpRightIcon(props: IconProps) {
 
 export function PagePlusIcon(props: IconProps) {
   return <PagePlus {...p(props)} />;
+}
+
+export function EditIcon(props: IconProps) {
+  return <EditPencil {...p(props)} />;
+}
+
+export function TrashIcon(props: IconProps) {
+  return <Trash {...p(props)} />;
+}
+
+export function UndoIcon(props: IconProps) {
+  return <Undo {...p(props)} />;
+}
+
+export function EyeIcon(props: IconProps) {
+  return <Eye {...p(props)} />;
+}
+
+export function FolderMinusIcon(props: IconProps) {
+  return <FolderMinus {...p(props)} />;
+}
+
+export function RefreshIcon(props: IconProps) {
+  return <Refresh {...p(props)} />;
+}
+
+export function InfoCircleIcon(props: IconProps) {
+  return <InfoCircle {...p(props)} />;
 }
 
 export function FolderPlusIcon(props: IconProps) {

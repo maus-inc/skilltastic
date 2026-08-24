@@ -68,54 +68,119 @@ fn skills_roots(tracked: &[ProjectInfo]) -> Vec<PathBuf> {
 ///   Sharing a skill across tools via a link stays allowed because every
 ///   tool's folder is a root, so a Cursor link into `~/.claude/skills`
 ///   still resolves home.
-fn validate_manifest_at(path: &Path, roots: &[PathBuf]) -> bool {
+/// A validated webview-supplied manifest id, in the two forms commands
+/// need:
+///
+/// - `raw` — the caller's path, after the shape bar (exactly
+///   `<root>/<skill>/SKILL.md` or `<root>/.disabled/<skill>/SKILL.md`,
+///   no `..`, no extra depth). Link-aware mutations (`toggle_enabled`,
+///   `delete_skill_dir`) MUST run on this form: their symlink handling
+///   only works when they see the link node itself, not its target.
+/// - `canonical` — the resolution bar's snapshot (symlinks followed,
+///   inside a managed root). Content operations (`read`/`write`) use
+///   this so a link swapped between check and use changes nothing.
+pub(crate) struct ManagedManifest {
+    pub raw: PathBuf,
+    pub canonical: PathBuf,
+}
+
+/// Shape + resolution check over a webview-supplied manifest id. See
+/// `ManagedManifest` for why both path forms are returned.
+fn resolve_manifest_in_roots(path: &Path, roots: &[PathBuf]) -> Option<ManagedManifest> {
     if path.file_name() != Some(OsStr::new(MANIFEST_FILE)) {
-        return false;
+        return None;
+    }
+    // no `..` anywhere — starts_with is component-wise and would let
+    // `<root>/../x` pass the prefix bar before canonicalize catches it
+    if path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return None;
     }
     let Some(skill_dir) = path.parent() else {
-        return false;
+        return None;
     };
     // `<root>/SKILL.md` and `<root>/.disabled/SKILL.md` name no skill
     if skill_dir.file_name().is_none_or(|n| n == DISABLED_DIR) {
-        return false;
+        return None;
     }
-    if !roots.iter().any(|root| skill_dir.starts_with(root)) {
-        return false;
-    }
+    // scanner output is exactly one folder deep under a root (or two
+    // with `.disabled`); nested ids are not skill manifests
+    let in_shape_root = roots.iter().find(|root| skill_dir.starts_with(root)).filter(|root| {
+        skill_dir
+            .strip_prefix(root)
+            .map(|rel| {
+                let comps: Vec<_> = rel.components().collect();
+                comps.len() == 1
+                    || (comps.len() == 2 && comps[0].as_os_str() == OsStr::new(DISABLED_DIR))
+            })
+            .unwrap_or(false)
+    });
+    let _root = in_shape_root?;
     let Ok(resolved) = fs::canonicalize(path) else {
-        return false;
+        return None;
     };
+    // the link may legitimately resolve into ANOTHER managed root (the
+    // cross-tool sharing setup) — escape means resolving into none
     let resolved_roots: Vec<PathBuf> = roots
         .iter()
         .filter_map(|r| fs::canonicalize(r).ok())
         .collect();
-    resolved_roots.iter().any(|root| resolved.starts_with(root))
+    if !resolved_roots.iter().any(|root| resolved.starts_with(root)) {
+        return None;
+    }
+    Some(ManagedManifest {
+        raw: path.to_path_buf(),
+        canonical: resolved,
+    })
 }
 
-fn manifest_is_manageable(app: &AppHandle, path: &Path) -> bool {
+#[cfg(test)]
+fn validate_manifest_at(path: &Path, roots: &[PathBuf]) -> bool {
+    resolve_manifest_in_roots(path, roots).is_some()
+}
+
+/// Validates a webview-supplied manifest id and hands back both path
+/// forms (see `ManagedManifest`).
+fn manageable_manifest(app: &AppHandle, path: &Path) -> Result<ManagedManifest, String> {
     let tracked = crate::projects::list(app).unwrap_or_default();
-    validate_manifest_at(path, &skills_roots(&tracked))
+    resolve_manifest_in_roots(path, &skills_roots(&tracked))
+        .ok_or_else(|| "not a managed skill path".to_string())
 }
 
 fn find_skill_by_manifest(app: &AppHandle, manifest: &Path) -> Option<Skill> {
     let target = manifest.to_string_lossy().to_string();
+    // Discovered ids carry their on-disk (non-canonical) spelling, while
+    // callers may hold a canonical snapshot — compare both forms.
+    let resolved_target = fs::canonicalize(manifest).ok();
+    let matches = |id: &str| {
+        id == target
+            || match (&resolved_target, fs::canonicalize(id).ok()) {
+                (Some(a), Some(b)) => a == &b,
+                _ => false,
+            }
+    };
 
     let in_user_scope = crate::skills::all_adapters()
         .into_iter()
         .flat_map(|adapter| adapter.discover())
-        .find(|s| s.id == target);
+        .find(|s| matches(&s.id));
     if in_user_scope.is_some() {
         return in_user_scope;
     }
 
+    let resolved_manifest = resolved_target.unwrap_or_else(|| manifest.to_path_buf());
     crate::projects::list(app)
         .unwrap_or_default()
         .into_iter()
-        .find(|p| manifest.starts_with(&p.path))
+        .find(|p| {
+            manifest.starts_with(&p.path)
+                || fs::canonicalize(&p.path)
+                    .map(|cp| resolved_manifest.starts_with(cp))
+                    .unwrap_or(false)
+        })
         .and_then(|p| {
             crate::skills::discover_project_skills(Path::new(&p.path))
                 .into_iter()
-                .find(|s| s.id == target)
+                .find(|s| matches(&s.id))
         })
 }
 
@@ -202,6 +267,46 @@ mod tests {
         assert!(!validate_manifest_at(&root.join("ghost/SKILL.md"), &roots));
 
         fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn nested_and_dotdot_ids_fail_the_shape_bar() {
+        let root = temp_root("shape-deep");
+        let roots = vec![root.clone()];
+
+        // deeper-than-scanner ids are not skill manifests
+        fs::create_dir_all(root.join("a/b")).unwrap();
+        fs::write(root.join("a/b/SKILL.md"), "x").unwrap();
+        assert!(!validate_manifest_at(&root.join("a/b/SKILL.md"), &roots));
+        // `..` components are rejected before any prefix matching
+        assert!(!validate_manifest_at(
+            &root.join("..").join(root.file_name().unwrap()).join("demo/SKILL.md"),
+            &roots
+        ));
+
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn linked_manifests_keep_the_link_as_raw_and_resolve_canonical() {
+        // delete/toggle run on `raw` (the link node), read/write on
+        // `canonical` — this is what keeps symlinked skills safe
+        let root = temp_root("managed-raw");
+        let other = temp_root("managed-target");
+        let roots = vec![root.clone(), other.clone()];
+        std::os::unix::fs::symlink(other.join("demo"), root.join("shared")).unwrap();
+
+        let managed =
+            resolve_manifest_in_roots(&root.join("shared/SKILL.md"), &roots).unwrap();
+        assert_eq!(managed.raw, root.join("shared/SKILL.md"));
+        assert_eq!(
+            managed.canonical,
+            other.join("demo/SKILL.md").canonicalize().unwrap()
+        );
+
+        fs::remove_dir_all(&root).unwrap();
+        fs::remove_dir_all(&other).unwrap();
     }
 
     #[test]

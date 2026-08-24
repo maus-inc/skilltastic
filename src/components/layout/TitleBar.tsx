@@ -7,7 +7,10 @@ import { HOME_TAB_ID, projectTabId, toolTabId, type TitleTab } from "../../types
 import { CommandMenu, type CommandEntry } from "../ui/CommandMenu";
 import {
   ArrowUpRightIcon,
+  CheckIcon,
   CloseIcon,
+  EditIcon,
+  EyeIcon,
   FolderIcon,
   FolderPlusIcon,
   GithubIcon,
@@ -18,7 +21,7 @@ import {
   PagePlusIcon,
   PlusIcon,
 } from "../ui/icons";
-import { MorphChevron, MorphGridFlask, MorphMaxRestore } from "../ui/morphs";
+import { MorphChevron, MorphMaxRestore, ToolTabMark } from "../ui/morphs";
 
 const REPO_URL = "https://github.com/maus-inc/skilltastic";
 
@@ -39,6 +42,10 @@ interface TitleBarProps {
   projects: { path: string; name: string }[];
   onOpenTool: (toolId: string) => void;
   onOpenProject: (path: string) => void;
+  /** editor-tab palette actions, present while an editor tab is active */
+  editorActions?: { save: () => void; togglePreview: () => void } | null;
+  /** tab id → unsaved edits, renders the dirty dot */
+  dirtyTabs?: Record<string, boolean>;
 }
 
 export function TitleBar({
@@ -53,11 +60,14 @@ export function TitleBar({
   projects,
   onOpenTool,
   onOpenProject,
+  editorActions = null,
+  dirtyTabs = {},
 }: TitleBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [maximized, setMaximized] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const markByToolId = new Map(tools.map((t) => [t.id, t.mark]));
 
   // Track native maximize state so the restore glyph stays honest.
   useEffect(() => {
@@ -93,7 +103,47 @@ export function TitleBar({
     getCurrentWindow()[action]().catch(console.error);
   };
 
+  // views first — the menu is mostly a switcher between the modes that
+  // appear as tabs; the one-shot actions live at the bottom
   const menuEntries: CommandEntry[] = [
+    ...(editorActions
+      ? [
+          {
+            id: "ed:save",
+            label: "save skill",
+            group: "editor",
+            icon: <CheckIcon size={12} />,
+            hint: "⌘S",
+            action: editorActions.save,
+          },
+          {
+            id: "ed:preview",
+            label: "toggle preview",
+            group: "editor",
+            icon: <EyeIcon size={12} />,
+            hint: "⌘⇧V",
+            action: editorActions.togglePreview,
+          },
+        ]
+      : []),
+    ...tools.map((tool) => ({
+      id: `tool:${tool.id}`,
+      label: tool.label,
+      group: "tools",
+      hint: "view",
+      icon: <img className="cmd-item-mark" src={tool.mark} alt="" />,
+      checked: activeTabId === toolTabId(tool.id),
+      action: () => onOpenTool(tool.id),
+    })),
+    ...projects.map((project) => ({
+      id: `project:${project.path}`,
+      label: project.name,
+      group: "projects",
+      hint: "view",
+      icon: <FolderIcon size={12} />,
+      checked: activeTabId === projectTabId(project.path),
+      action: () => onOpenProject(project.path),
+    })),
     {
       id: "act:new-skill",
       label: "new skill…",
@@ -127,24 +177,6 @@ export function TitleBar({
       ),
       action: () => openUrl(REPO_URL).catch(console.error),
     },
-    ...tools.map((tool) => ({
-      id: `tool:${tool.id}`,
-      label: tool.label,
-      group: "tools",
-      hint: "tool",
-      icon: <img className="cmd-item-mark" src={tool.mark} alt="" />,
-      checked: activeTabId === toolTabId(tool.id),
-      action: () => onOpenTool(tool.id),
-    })),
-    ...projects.map((project) => ({
-      id: `project:${project.path}`,
-      label: project.name,
-      group: "projects",
-      hint: "project",
-      icon: <FolderIcon size={12} />,
-      checked: activeTabId === projectTabId(project.path),
-      action: () => onOpenProject(project.path),
-    })),
   ];
 
   return (
@@ -153,10 +185,11 @@ export function TitleBar({
       {IS_MAC && <div className="tb-mac-inset" data-tauri-drag-region />}
 
       {/* home tab — house icon only, like Figma's recents tab */}
-      <button
+      <button type="button"
         className={`tb-home ${activeTabId === HOME_TAB_ID ? "active" : ""}`}
         onClick={() => onActivateTab(HOME_TAB_ID)}
         data-tip="all skills"
+        aria-label="all skills"
       >
         <HomeIcon size={16} />
       </button>
@@ -184,18 +217,26 @@ export function TitleBar({
             <span className="tb-tab-icon">
               {tab.kind === "project" ? (
                 <FolderIcon size={12} />
+              ) : tab.kind === "editor" ? (
+                <EditIcon size={12} />
               ) : (
-                <MorphGridFlask hover={hoveredTab === tab.id} />
+                <ToolTabMark
+                  hover={hoveredTab === tab.id}
+                  mark={markByToolId.get(tab.toolId) ?? ""}
+                  label={tab.label}
+                />
               )}
             </span>
             <span className="tb-tab-label">{tab.label}</span>
-            <button
+            {dirtyTabs[tab.id] && <span className="tb-tab-dirty" aria-label="unsaved changes" />}
+            <button type="button"
               className="tb-tab-close"
               onClick={(e) => {
                 e.stopPropagation();
                 onCloseTab(tab.id);
               }}
               title="close tab"
+              aria-label={`close ${tab.label}`}
             >
               <CloseIcon size={12} />
             </button>
@@ -203,7 +244,7 @@ export function TitleBar({
         ))}
         </AnimatePresence>
 
-        <button className="tb-plus" onClick={onNewSkill} data-tip="new skill">
+        <button type="button" className="tb-plus" onClick={onNewSkill} data-tip="new skill" aria-label="new skill">
           <PlusIcon size={16} />
         </button>
       </div>
@@ -213,10 +254,11 @@ export function TitleBar({
 
       {/* overflow menu — "…" on macOS, "⌄" next to the controls elsewhere */}
       <div className="tb-menu-wrap" ref={menuRef}>
-        <button
+        <button type="button"
           className={`tb-menu-btn ${menuOpen ? "open" : ""}`}
           onClick={() => setMenuOpen((o) => !o)}
           data-tip="menu"
+          aria-label="menu"
         >
           <span className="tb-menu-icon">
             {IS_MAC ? <MoreIcon size={16} /> : <MorphChevron open={menuOpen} />}
@@ -237,13 +279,13 @@ export function TitleBar({
       {/* window controls — Windows/Linux only; macOS has traffic lights */}
       {!IS_MAC && (
         <div className="tb-controls">
-          <button className="tb-ctl" onClick={winCtl("minimize")} data-tip="minimize" aria-label="minimize">
+          <button type="button" className="tb-ctl" onClick={winCtl("minimize")} data-tip="minimize" aria-label="minimize">
             <MinimizeIcon size={16} />
           </button>
-          <button className="tb-ctl" onClick={winCtl("toggleMaximize")} data-tip={maximized ? "restore" : "maximize"} aria-label={maximized ? "restore" : "maximize"}>
+          <button type="button" className="tb-ctl" onClick={winCtl("toggleMaximize")} data-tip={maximized ? "restore" : "maximize"} aria-label={maximized ? "restore" : "maximize"}>
             <MorphMaxRestore maximized={maximized} />
           </button>
-          <button className="tb-ctl tb-ctl-close" onClick={winCtl("close")} data-tip="close" aria-label="close">
+          <button type="button" className="tb-ctl tb-ctl-close" onClick={winCtl("close")} data-tip="close" aria-label="close">
             <CloseIcon size={16} />
           </button>
         </div>
