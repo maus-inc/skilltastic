@@ -73,14 +73,18 @@ click. `ui/TimedUndoAction.tsx` (the Watermelon `time-undo-action` pattern,
 restyled to these tokens) is the only confirmation UX:
 
 - **rest:** solid destructive fill (`wm-btn--destructive` colors/streak),
-  24px height, 7px radius — reads as a plain destructive button.
+  24px height, 7px radius, center-aligned — reads as a plain destructive
+  button; hover morphs the label into `hoverIcon` like every action button.
 - **armed (first click):** the control springs wider; fill drops to a
   danger tint with a danger border, and `[undo mark][label][countdown]`
-  appear with the per-character spring stagger (no blur filters — perf
-  contract). The countdown chip is mono tabular-nums on the destructive
-  fill.
-- **second click cancels; expiry commits exactly once.** Unmounting while
-  armed cancels — teardown never commits (closing a modal is not consent).
+  appear center-aligned with the per-character spring stagger (no blur
+  filters — perf contract). The countdown chip is mono tabular-nums on
+  the destructive fill. Clicking it cancels back to rest.
+- **ready (countdown finished):** the control becomes an explicit
+  `[trash][label]` execute button (solid destructive, hotter border).
+  **Nothing auto-commits — ever.** Only clicking the ready button runs
+  the action. Escape or an outside press disarms from armed/ready;
+  unmount/teardown never commits (closing a modal is not consent).
 - Width animates via a measured spring (`react-use-measure`); this is the
   one sanctioned width animation (stateful expand, not a hover morph).
 - `useSkillMutations.remove` executes only; confirmation lives in the UI

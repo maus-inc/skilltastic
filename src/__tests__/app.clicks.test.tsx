@@ -119,17 +119,19 @@ describe("app click flows (preview mode)", () => {
     expect(screen.getByText("commit-style / SKILL.md")).toBeTruthy();
   }, 15000);
 
-  it("delete flow: letting the countdown run removes the card for good", async () => {
+  it("delete flow: expiry reveals the execute button; clicking it deletes", async () => {
     const user = userEvent.setup();
     await boot();
     await user.click(screen.getAllByText("commit-style")[0]);
     await waitFor(() => expect(screen.getByText("commit-style / SKILL.md")).toBeTruthy());
     await user.click(screen.getByLabelText("delete"));
     await waitFor(() => expect(screen.getByLabelText(/cancel — \d+ seconds/)).toBeTruthy());
-    // expiry commits: the editor closes and the card is gone everywhere
-    await waitFor(() => expect(screen.queryByText("commit-style / SKILL.md")).toBeNull(), {
+    // expiry never commits by itself — it reveals the explicit execute button
+    await waitFor(() => expect(screen.getByLabelText("confirm delete")).toBeTruthy(), {
       timeout: 9000,
     });
+    await user.click(screen.getByLabelText("confirm delete"));
+    await waitFor(() => expect(screen.queryByText("commit-style / SKILL.md")).toBeNull());
     await waitFor(() => expect(screen.queryByText("commit-style")).toBeNull());
   }, 15000);
 
@@ -176,11 +178,15 @@ describe("app click flows (preview mode)", () => {
     expect(screen.queryByText("code-review")).toBeNull();
     await user.click(screen.getByLabelText("forget project"));
     await waitFor(() => expect(screen.getByLabelText(/keep project — \d+ seconds/)).toBeTruthy());
-    // countdown expiry commits the forget
-    await waitFor(() => expect(screen.getAllByText("code-review").length).toBeGreaterThan(0), {
+    // countdown ends on the explicit execute button; clicking it forgets
+    await waitFor(() => expect(screen.getByLabelText("confirm forget project")).toBeTruthy(), {
       timeout: 9000,
     });
-  }, 15000);
+    await user.click(screen.getByLabelText("confirm forget project"));
+    await waitFor(() => expect(screen.getAllByText("code-review").length).toBeGreaterThan(0), {
+      timeout: 5000,
+    });
+  }, 20000);
 
   it("list ⇄ cards view toggle keeps every skill visible", async () => {
     const user = userEvent.setup();

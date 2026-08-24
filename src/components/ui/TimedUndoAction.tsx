@@ -1,37 +1,40 @@
 import { useEffect, useRef, useState, type FC, type ReactNode } from "react";
 import { motion, MotionConfig } from "motion/react";
 import useMeasure from "react-use-measure";
-import { UndoIcon } from "./icons";
+import { TrashIcon, UndoIcon } from "./icons";
 import { RollingLabel } from "./RollingLabel";
 
 /**
  * Timed-undo confirmation for destructive actions — the Watermelon
  * `time-undo-action` pattern rebuilt in this app's own language (wm-btn
- * radii/typography, danger tints, streak depth tokens, Iconoir mark,
- * no blur filters per the 60fps contract).
+ * radii/typography, danger tints, streak depth tokens, Iconoir marks,
+ * no blur filters per the 60fps contract). Everything is center-aligned.
  *
- * Semantics (the real logic, not the demo's): first click ARMS a pending
- * destructive action — the control morphs into [undo mark][label][count]
- * and counts down. Clicking again cancels. When the countdown expires the
- * action commits exactly once. Unmounting while armed cancels; teardown
- * never commits.
- *
- * At rest it behaves like a btn-morph button: hover fades the label and
- * rotates `hoverIcon` in (pass one, like every other action button).
+ * Three phases, no auto-commit anywhere:
+ *  - idle:  reads as a plain destructive button; hover morphs the label
+ *           into `hoverIcon` (btn-morph vocabulary)
+ *  - armed: first click — [undo mark][undo label][countdown]; clicking it
+ *           cancels back to idle
+ *  - ready: countdown finished — the control becomes an explicit
+ *           [trash][label] execute button; ONLY clicking it commits.
+ * Escape or clicking outside disarms from armed/ready. Unmounting never
+ * commits.
  */
 export interface TimedUndoActionProps {
   /** countdown seconds once armed */
   seconds?: number;
-  /** resting label — the destructive action ("delete") */
+  /** resting/execute label — the destructive action ("delete") */
   label: string;
-  /** armed label — the way out ("cancel delete") */
+  /** armed label — the way out ("cancel") */
   undoLabel: string;
-  /** fires once when the countdown expires */
+  /** fires when the ready state is clicked */
   onCommit: () => void;
-  /** icon the resting label morphs into on hover (btn-morph vocabulary) */
+  /** icon the resting label morphs into on hover */
   hoverIcon?: ReactNode;
   disabled?: boolean;
 }
+
+type Phase = "idle" | "armed" | "ready";
 
 export const TimedUndoAction: FC<TimedUndoActionProps> = ({
   seconds = 6,
@@ -41,46 +44,70 @@ export const TimedUndoAction: FC<TimedUndoActionProps> = ({
   hoverIcon,
   disabled,
 }) => {
-  const [armed, setArmed] = useState(false);
+  const [phase, setPhase] = useState<Phase>("idle");
   const [count, setCount] = useState(seconds);
   const [ref, bounds] = useMeasure({ offsetSize: true });
+  const btnRef = useRef<HTMLButtonElement>(null);
   const commitRef = useRef(onCommit);
   commitRef.current = onCommit;
 
   // tick while armed
   useEffect(() => {
-    if (!armed) return;
+    if (phase !== "armed") return;
     const interval = setInterval(() => setCount((c) => c - 1), 1000);
     return () => clearInterval(interval);
-  }, [armed]);
+  }, [phase]);
 
-  // expiry commits exactly once; closing/unmounting before that cancels
+  // expiry reveals the explicit execute button; it never commits by itself
   useEffect(() => {
-    if (!armed || count > 0) return;
-    setArmed(false);
-    setCount(seconds);
-    commitRef.current();
-  }, [armed, count, seconds]);
+    if (phase === "armed" && count <= 0) setPhase("ready");
+  }, [phase, count]);
 
-  const toggle = () => {
+  // escape or outside press disarms — silence is not consent
+  useEffect(() => {
+    if (phase === "idle") return;
+    const onDown = (e: MouseEvent) => {
+      if (!btnRef.current?.contains(e.target as Node)) setPhase("idle");
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPhase("idle");
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [phase]);
+
+  const onClick = () => {
     if (disabled) return;
-    setArmed((a) => {
-      if (!a) setCount(seconds);
-      return !a;
-    });
+    if (phase === "idle") {
+      setCount(seconds);
+      setPhase("armed");
+    } else if (phase === "armed") {
+      setPhase("idle");
+    } else {
+      setPhase("idle");
+      commitRef.current();
+    }
   };
+
+  const armed = phase === "armed";
+  const ready = phase === "ready";
 
   return (
     <MotionConfig transition={{ type: "spring", stiffness: 250, damping: 22 }}>
       <motion.button
+        ref={btnRef}
         type="button"
-        className={`tua ${armed ? "armed" : ""}`}
-        onClick={toggle}
+        className={`tua ${armed ? "armed" : ""} ${ready ? "ready" : ""}`}
+        onClick={onClick}
         disabled={disabled}
-        aria-label={armed ? `${undoLabel} — ${count} seconds` : label}
+        aria-label={armed ? `${undoLabel} — ${count} seconds` : ready ? `confirm ${label}` : label}
         animate={{ width: bounds.width > 0 ? bounds.width : "auto" }}
       >
-        <span className={`tua-inner ${armed ? "armed" : ""}`} ref={ref}>
+        <span className="tua-inner" ref={ref}>
           {armed && (
             <motion.span
               className="tua-chip"
@@ -90,12 +117,23 @@ export const TimedUndoAction: FC<TimedUndoActionProps> = ({
               <UndoIcon size={12} />
             </motion.span>
           )}
+          {ready && (
+            <motion.span
+              className="tua-chip"
+              initial={{ opacity: 0, scale: 0.6, rotate: -90 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            >
+              <TrashIcon size={12} />
+            </motion.span>
+          )}
 
           <span className="tua-textwrap">
             <span className="btn-morph-label">
               <AnimatedText text={armed ? undoLabel : label} className="tua-text" />
             </span>
-            {!armed && hoverIcon && <span className="btn-morph-icon">{hoverIcon}</span>}
+            {phase === "idle" && hoverIcon && (
+              <span className="btn-morph-icon">{hoverIcon}</span>
+            )}
           </span>
 
           {armed && (

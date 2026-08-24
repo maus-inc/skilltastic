@@ -1184,15 +1184,28 @@ body,
   inset: -1px;
   border-radius: 11px;
   padding: 1px;
-  background: conic-gradient(
-    from var(--sweep),
-    transparent 0deg,
-    transparent 286deg,
-    rgba(190, 190, 190, 0.12) 306deg,
-    rgba(214, 214, 214, 0.55) 336deg,
-    rgba(255, 255, 255, 0.95) 352deg,
-    transparent 360deg
-  );
+  /* two shooting stars: a bright head with a long comet tail, plus a
+     fainter shorter one ~150° behind — the orbit reads organic instead
+     of a single predictable dot */
+  background:
+    conic-gradient(
+      from var(--sweep),
+      transparent 0deg,
+      transparent 292deg,
+      rgba(190, 190, 190, 0.08) 310deg,
+      rgba(205, 205, 205, 0.28) 330deg,
+      rgba(224, 224, 224, 0.6) 348deg,
+      rgba(255, 255, 255, 0.95) 357deg,
+      transparent 360deg
+    ),
+    conic-gradient(
+      from calc(var(--sweep) + 150deg),
+      transparent 0deg,
+      transparent 320deg,
+      rgba(255, 255, 255, 0.18) 344deg,
+      rgba(255, 255, 255, 0.45) 357deg,
+      transparent 360deg
+    );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -1205,7 +1218,10 @@ body,
 @media (hover: hover) and (pointer: fine) {
   .skill-card:hover::after {
     opacity: 1;
-    animation: card-sweep 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    /* linear orbit — no per-revolution speed dip to catch the eye; the
+       interest comes from the dual heads and the per-hover random start
+       angle + speed the card sets on mouseenter */
+    animation: card-sweep var(--sweep-dur, 2.4s) linear infinite;
   }
 }
 
@@ -1584,7 +1600,7 @@ body,
   position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   overflow: hidden;
   height: 24px;
   flex-shrink: 0;
@@ -1609,6 +1625,15 @@ body,
   box-shadow: var(--streak);
 }
 
+/* countdown over: the explicit execute button — solid destructive again,
+   hotter border so the final act reads as such */
+.tua.ready {
+  background: rgba(239, 68, 68, 0.75);
+  border-color: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
 .tua:focus-visible {
   box-shadow: 0 0 0 1px var(--bg), 0 0 0 3px rgba(239, 68, 68, 0.4);
 }
@@ -1621,12 +1646,14 @@ body,
 .tua-inner {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   height: 100%;
   padding: 0 10px;
 }
 
-.tua-inner.armed {
+.tua-inner.armed,
+.tua.armed .tua-inner {
   gap: 4px;
   padding: 0 5px;
 }
