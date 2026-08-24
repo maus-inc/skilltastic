@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ToolFolderInfo } from "../../types";
 import { Button } from "../ui/Button";
 import { TimedUndoAction } from "../ui/TimedUndoAction";
-import { PlusIcon } from "../ui/icons";
+import { FolderMinusIcon, PlusIcon } from "../ui/icons";
 
 interface TopbarProps {
   title: string;
@@ -91,6 +91,7 @@ export function Topbar({ title, subtitle, folders, query, onQueryChange, onForge
             undoLabel="keep project"
             seconds={6}
             onCommit={onForgetProject}
+            hoverIcon={<FolderMinusIcon size={13} />}
           />
         )}
       </div>

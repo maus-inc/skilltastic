@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "../ui/Button";
 import { provider } from "../ui/providers";
 import { api } from "../../api";
-import { CloseIcon, EditIcon } from "../ui/icons";
+import { CheckIcon, CloseIcon, EditIcon, EyeIcon, TrashIcon } from "../ui/icons";
 import { TimedUndoAction } from "../ui/TimedUndoAction";
 import { ModalShell } from "../ui/ModalShell";
 import { renderMarkdown } from "../../utils/markdown";
@@ -123,30 +123,55 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
           <Button
             variant={mode === "edit" ? "secondary" : "outline"}
             size="sm"
-            className={mode === "edit" ? undefined : "btn-morph"}
+            className="btn-morph"
             onClick={() => setMode(mode === "edit" ? "view" : "edit")}
             aria-label={mode === "edit" ? "view" : "edit"}
           >
-            {mode === "edit" ? (
-              "view"
-            ) : (
-              <>
-                <span className="btn-morph-label">edit</span>
-                <span className="btn-morph-icon">
-                  <EditIcon size={13} />
-                </span>
-              </>
-            )}
+            <span className="btn-morph-label">{mode === "edit" ? "view" : "edit"}</span>
+            <span className="btn-morph-icon">
+              {mode === "edit" ? <EyeIcon size={13} /> : <EditIcon size={13} />}
+            </span>
           </Button>
           {/* destructive actions confirm in-place: arm, count down, commit */}
-          <TimedUndoAction label="delete" undoLabel="cancel" seconds={6} onCommit={remove} />
+          <TimedUndoAction
+            label="delete"
+            undoLabel="cancel"
+            seconds={6}
+            onCommit={remove}
+            hoverIcon={<TrashIcon size={13} />}
+          />
           {mode === "edit" && (
             <div className="footer-spacer">
-              <Button variant="ghost" size="sm" onClick={() => setMode("view")}>
-                cancel
+              <Button
+                variant="ghost"
+                size="sm"
+                className="btn-morph"
+                onClick={() => setMode("view")}
+                aria-label="cancel"
+              >
+                <span className="btn-morph-label">cancel</span>
+                <span className="btn-morph-icon">
+                  <CloseIcon size={13} />
+                </span>
               </Button>
-              <Button variant="default" size="sm" onClick={save} disabled={loading || saving}>
-                {saving ? "saving..." : "save"}
+              <Button
+                variant="default"
+                size="sm"
+                className={saving ? undefined : "btn-morph"}
+                onClick={save}
+                disabled={loading || saving}
+                aria-label="save"
+              >
+                {saving ? (
+                  "saving..."
+                ) : (
+                  <>
+                    <span className="btn-morph-label">save</span>
+                    <span className="btn-morph-icon">
+                      <CheckIcon size={13} />
+                    </span>
+                  </>
+                )}
               </Button>
             </div>
           )}

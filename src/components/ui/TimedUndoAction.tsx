@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type FC } from "react";
-import { AnimatePresence, motion, MotionConfig } from "motion/react";
+import { useEffect, useRef, useState, type FC, type ReactNode } from "react";
+import { motion, MotionConfig } from "motion/react";
 import useMeasure from "react-use-measure";
 import { UndoIcon } from "./icons";
+import { RollingLabel } from "./RollingLabel";
 
 /**
  * Timed-undo confirmation for destructive actions — the Watermelon
@@ -14,6 +15,9 @@ import { UndoIcon } from "./icons";
  * and counts down. Clicking again cancels. When the countdown expires the
  * action commits exactly once. Unmounting while armed cancels; teardown
  * never commits.
+ *
+ * At rest it behaves like a btn-morph button: hover fades the label and
+ * rotates `hoverIcon` in (pass one, like every other action button).
  */
 export interface TimedUndoActionProps {
   /** countdown seconds once armed */
@@ -24,6 +28,8 @@ export interface TimedUndoActionProps {
   undoLabel: string;
   /** fires once when the countdown expires */
   onCommit: () => void;
+  /** icon the resting label morphs into on hover (btn-morph vocabulary) */
+  hoverIcon?: ReactNode;
   disabled?: boolean;
 }
 
@@ -32,6 +38,7 @@ export const TimedUndoAction: FC<TimedUndoActionProps> = ({
   label,
   undoLabel,
   onCommit,
+  hoverIcon,
   disabled,
 }) => {
   const [armed, setArmed] = useState(false);
@@ -74,46 +81,32 @@ export const TimedUndoAction: FC<TimedUndoActionProps> = ({
         animate={{ width: bounds.width > 0 ? bounds.width : "auto" }}
       >
         <span className={`tua-inner ${armed ? "armed" : ""}`} ref={ref}>
-          <AnimatePresence mode="popLayout" initial={false}>
-            {armed && (
-              <motion.span
-                className="tua-chip"
-                initial={{ opacity: 0, scale: 0.6 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.6 }}
-              >
-                <UndoIcon size={12} />
-              </motion.span>
-            )}
-          </AnimatePresence>
+          {armed && (
+            <motion.span
+              className="tua-chip"
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <UndoIcon size={12} />
+            </motion.span>
+          )}
 
-          <AnimatedText
-            text={armed ? undoLabel : label}
-            className={`tua-text ${armed ? "armed" : ""}`}
-          />
+          <span className="tua-textwrap">
+            <span className="btn-morph-label">
+              <AnimatedText text={armed ? undoLabel : label} className="tua-text" />
+            </span>
+            {!armed && hoverIcon && <span className="btn-morph-icon">{hoverIcon}</span>}
+          </span>
 
-          <AnimatePresence mode="popLayout" initial={false}>
-            {armed && (
-              <motion.span
-                className="tua-count"
-                initial={{ opacity: 0, scale: 0.6 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.6 }}
-              >
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={count}
-                    initial={{ opacity: 0, y: -10, scale: 0.6 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.6 }}
-                    transition={{ type: "spring", stiffness: 240, damping: 20, mass: 1 }}
-                  >
-                    {Math.max(count, 0)}
-                  </motion.span>
-                </AnimatePresence>
-              </motion.span>
-            )}
-          </AnimatePresence>
+          {armed && (
+            <motion.span
+              className="tua-count"
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <RollingLabel text={String(Math.max(count, 0))} direction="down" />
+            </motion.span>
+          )}
         </span>
       </motion.button>
     </MotionConfig>
@@ -133,31 +126,21 @@ function AnimatedText({
 }) {
   return (
     <span className={className} style={{ display: "inline-flex" }} aria-hidden="true">
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.span key={text} style={{ display: "inline-flex", willChange: "transform" }}>
-          {text.split("").map((char, i) => (
-            <motion.span
-              key={i}
-              initial={{ y: 8, opacity: 0, scale: 0.6 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: -8, opacity: 0, scale: 0.6 }}
-              transition={{
-                type: "spring",
-                stiffness: 240,
-                damping: 16,
-                mass: 1.2,
-                delay: i * delayStep,
-              }}
-              style={{
-                display: "inline-block",
-                whiteSpace: char === " " ? "pre" : undefined,
-              }}
-            >
-              {char}
-            </motion.span>
-          ))}
-        </motion.span>
-      </AnimatePresence>
+      <motion.span key={text} style={{ display: "inline-flex", willChange: "transform" }}>
+        {text.split("").map((char, i) => (
+          <motion.span
+            key={`${text}-${i}`}
+            initial={{ y: 8, opacity: 0, scale: 0.6 }}
+            animate={{ y: 0, opacity: 1, scale: 1, transition: { delay: i * delayStep } }}
+            style={{
+              display: "inline-block",
+              whiteSpace: char === " " ? "pre" : undefined,
+            }}
+          >
+            {char}
+          </motion.span>
+        ))}
+      </motion.span>
     </span>
   );
 }

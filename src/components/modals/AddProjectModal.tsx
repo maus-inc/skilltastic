@@ -3,7 +3,7 @@ import { Button } from "../ui/Button";
 import { api } from "../../api";
 import { relativeTime } from "../../utils/relativeTime";
 import { SortToggle } from "../skills/SortToggle";
-import { CloseIcon } from "../ui/icons";
+import { CloseIcon, FolderPlusIcon, RefreshIcon } from "../ui/icons";
 import { ModalShell } from "../ui/ModalShell";
 import type { DetectedProject, ProjectInfo } from "../../types";
 
@@ -112,8 +112,24 @@ export function AddProjectModal({ trackedPaths, onClose, onAdd, onBrowse }: AddP
                 This checks only normal development folders and project paths from your editor and
                 agent history. The result is saved, so reopening this picker does not scan again.
               </p>
-              <Button variant="outline" size="sm" onClick={discover} disabled={scanning}>
-                {scanning ? "finding recent projects…" : "find recent projects"}
+              <Button
+                variant="outline"
+                size="sm"
+                className={scanning ? undefined : "btn-morph"}
+                onClick={discover}
+                disabled={scanning}
+                aria-label="find recent projects"
+              >
+                {scanning ? (
+                  "finding recent projects…"
+                ) : (
+                  <>
+                    <span className="btn-morph-label">find recent projects</span>
+                    <span className="btn-morph-icon">
+                      <RefreshIcon size={13} />
+                    </span>
+                  </>
+                )}
               </Button>
             </div>
           ) : (
@@ -166,12 +182,38 @@ export function AddProjectModal({ trackedPaths, onClose, onAdd, onBrowse }: AddP
         <div className="modal-footer">
           <div className="footer-spacer">
             {detected !== null && (
-              <Button variant="outline" size="sm" onClick={discover} disabled={scanning || adding !== null}>
-                {scanning ? "refreshing…" : "refresh recent projects"}
+              <Button
+                variant="outline"
+                size="sm"
+                className={scanning ? undefined : "btn-morph"}
+                onClick={discover}
+                disabled={scanning || adding !== null}
+                aria-label="refresh recent projects"
+              >
+                {scanning ? (
+                  "refreshing…"
+                ) : (
+                  <>
+                    <span className="btn-morph-label">refresh recent projects</span>
+                    <span className="btn-morph-icon">
+                      <RefreshIcon size={13} />
+                    </span>
+                  </>
+                )}
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={browse} disabled={adding !== null}>
-              browse folders…
+            <Button
+              variant="outline"
+              size="sm"
+              className="btn-morph"
+              onClick={browse}
+              disabled={adding !== null}
+              aria-label="browse folders"
+            >
+              <span className="btn-morph-label">browse folders…</span>
+              <span className="btn-morph-icon">
+                <FolderPlusIcon size={13} />
+              </span>
             </Button>
           </div>
         </div>

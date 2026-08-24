@@ -2,7 +2,9 @@ import {
   ArrowUpRight,
   Check,
   EditPencil,
+  Eye,
   Folder,
+  FolderMinus,
   FolderPlus,
   Github,
   Globe,
@@ -15,6 +17,7 @@ import {
   Pin,
   PinSolid,
   Plus,
+  Refresh,
   Search,
   Square,
   Trash,
@@ -125,6 +128,18 @@ export function TrashIcon(props: IconProps) {
 
 export function UndoIcon(props: IconProps) {
   return <Undo {...p(props)} />;
+}
+
+export function EyeIcon(props: IconProps) {
+  return <Eye {...p(props)} />;
+}
+
+export function FolderMinusIcon(props: IconProps) {
+  return <FolderMinus {...p(props)} />;
+}
+
+export function RefreshIcon(props: IconProps) {
+  return <Refresh {...p(props)} />;
 }
 
 export function FolderPlusIcon(props: IconProps) {

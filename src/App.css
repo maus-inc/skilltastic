@@ -1211,10 +1211,10 @@ body,
 
 @keyframes card-sweep {
   from {
-    --sweep: 0deg;
+    --sweep: var(--sweep-offset, 0deg);
   }
   to {
-    --sweep: 360deg;
+    --sweep: calc(360deg + var(--sweep-offset, 0deg));
   }
 }
 
@@ -1552,12 +1552,14 @@ body,
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .btn-morph:hover .btn-morph-label {
+  .btn-morph:hover .btn-morph-label,
+  .tua:not(.armed):hover .btn-morph-label {
     opacity: 0;
     transform: scale(0.85);
   }
 
-  .btn-morph:hover .btn-morph-icon {
+  .btn-morph:hover .btn-morph-icon,
+  .tua:not(.armed):hover .btn-morph-icon {
     opacity: 1;
     transform: rotate(0deg) scale(1);
   }
@@ -1627,6 +1629,25 @@ body,
 .tua-inner.armed {
   gap: 4px;
   padding: 0 5px;
+}
+
+/* anchors the absolutely-centered hover icon, like .btn-morph does */
+.tua-textwrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* the countdown rides the shared odometer — restyled for the chip */
+.tua-count .rolling-label {
+  opacity: 1;
+  height: 12px;
+  min-width: 12px;
+  line-height: 12px;
+  font-size: 10px;
+  color: #fff;
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 .tua-chip {

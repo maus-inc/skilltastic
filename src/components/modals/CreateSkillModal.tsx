@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "../ui/Button";
 import { api } from "../../api";
-import { CloseIcon } from "../ui/icons";
+import { CloseIcon, PagePlusIcon } from "../ui/icons";
 import { ModalShell } from "../ui/ModalShell";
 import type { AgentTool, ProjectInfo, Skill, ToolEntry } from "../../types";
 
@@ -176,8 +176,24 @@ export function CreateSkillModal({
           <div className="footer-spacer" />
           {/* Stay clickable when input is incomplete: clicking explains what's
               missing instead of doing nothing. Only in-flight submits block. */}
-          <Button variant="default" size="sm" onClick={submit} disabled={submitting}>
-            {submitting ? "creating…" : "create & edit"}
+          <Button
+            variant="default"
+            size="sm"
+            className={submitting ? undefined : "btn-morph"}
+            onClick={submit}
+            disabled={submitting}
+            aria-label="create & edit"
+          >
+            {submitting ? (
+              "creating…"
+            ) : (
+              <>
+                <span className="btn-morph-label">create & edit</span>
+                <span className="btn-morph-icon">
+                  <PagePlusIcon size={13} />
+                </span>
+              </>
+            )}
           </Button>
         </div>
     </ModalShell>

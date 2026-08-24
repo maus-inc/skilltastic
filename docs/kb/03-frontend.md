@@ -112,6 +112,12 @@ src/
   never stack the states with grid (grid-area stacking rendered as an
   unpainted button in real browsers); pointer-gated, reduced-motion
   keeps the fade only.
+- **Card shimmer ("shooting star"):** on hover a silver conic head
+  orbits the card's border ring (mask-composite ring trick,
+  `@property --sweep` angle animation, 2.4s ease-in-out; hover-gated,
+  reduced-motion removes it). Every card derives a `--sweep-offset`
+  from its stable id so each orbit starts at its own angle — a hovered
+  grid never sweeps in lockstep.
 - **Tooltips:** `[data-tip]` / `[data-tip-side="top"]` css tooltips
   (350ms intent delay) replace native `title` on window chrome, pins
   and the scope chip. Prefer them over `title` on interactive chrome.
