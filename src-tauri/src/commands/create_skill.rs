@@ -45,6 +45,19 @@ fn validate_skill_folder_name(name: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Description policy for new skills, mirrored by the editor lint: at most
+/// 1024 chars and no `<`/`>` — angle brackets in a description read like
+/// injected markup once the manifest lands in an agent's system prompt.
+fn validate_skill_description(description: &str) -> Result<(), String> {
+    if description.chars().count() > 1024 {
+        return Err("description must be at most 1024 characters".into());
+    }
+    if description.contains('<') || description.contains('>') {
+        return Err("description must not contain '<' or '>'".into());
+    }
+    Ok(())
+}
+
 /// A one-line description rendered as a YAML double-quoted scalar, so
 /// colons, quotes and other YAML-significant characters survive the
 /// frontmatter round trip without inventing a parser. Multi-line values
@@ -85,6 +98,7 @@ fn create_skill_manifest(
     if description.is_empty() {
         return Err("description is empty".into());
     }
+    validate_skill_description(description)?;
     let skill_dir = root.join(name);
     if skill_dir.exists() {
         return Err(format!(
@@ -274,6 +288,31 @@ mod tests {
         assert!(create_skill_manifest(&roots, &managed, "ok-name", "   ").is_err());
         // nothing was created by any rejected attempt
         assert!(!managed.exists());
+
+        let _ = fs::remove_dir_all(managed.parent().unwrap());
+    }
+
+    #[test]
+    fn create_rejects_oversized_and_markup_descriptions() {
+        let (managed, _unmanaged) = fresh_roots("desc-policy");
+        let roots = vec![managed.clone()];
+
+        let too_long = "x".repeat(1025);
+        let err = create_skill_manifest(&roots, &managed, "rejected", &too_long).unwrap_err();
+        assert!(err.contains("1024"), "unexpected error: {err}");
+
+        let err =
+            create_skill_manifest(&roots, &managed, "rejected", "has <angle> brackets").unwrap_err();
+        assert!(err.contains("'<'"), "unexpected error: {err}");
+
+        // the rejected attempts wrote nothing
+        assert!(!managed.join("rejected").exists());
+
+        // the 1024-char boundary itself is accepted
+        let max_ok = "y".repeat(1024);
+        let manifest =
+            create_skill_manifest(&roots, &managed, "ok-name", &max_ok).expect("boundary should pass");
+        assert!(manifest.is_file());
 
         let _ = fs::remove_dir_all(managed.parent().unwrap());
     }

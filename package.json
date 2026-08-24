@@ -5,7 +5,7 @@
   "type": "module",
   "author": "Owie Emmanuel",
   "license": "MIT",
-  "description": "Discover, enable, disable, edit, and delete AI coding agent skills across Claude, Codex, Cursor, and OpenCode.",
+  "description": "Discover, enable, disable, edit, and delete AI coding agent skills across Claude Code, Codex, Cursor, Gemini CLI, and more.",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

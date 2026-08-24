@@ -71,6 +71,21 @@ describe("app click flows (preview mode)", () => {
     await waitFor(() => expect(document.querySelector(".ed-crumb-title")).toBeNull());
   }, 15000);
 
+  it("navigating away from a clean editor lands on the target view", async () => {
+    // regression: sidebar/tab navigation must route through the same
+    // leave-editor path as tab close, never stranding the editor open
+    const user = userEvent.setup();
+    await boot();
+    await user.click(screen.getAllByText("docs-sync")[0]);
+    await waitFor(() =>
+      expect(document.querySelector(".ed-crumb-title")?.textContent).toContain("docs-sync"),
+    );
+    await user.click(getSidebarRow("Cursor"));
+    await waitFor(() => expect(document.querySelector(".ed-crumb-title")).toBeNull());
+    expect(screen.getAllByText("tests-first").length).toBeGreaterThan(0);
+    expect(screen.queryByText("code-review")).toBeNull();
+  }, 15000);
+
   it("clicking a switch toggles the skill and the card stays visible", async () => {
     const user = userEvent.setup();
     await boot();
@@ -156,6 +171,31 @@ describe("app click flows (preview mode)", () => {
     await user.click(screen.getByLabelText("confirm delete"));
     await waitFor(() => expect(document.querySelector(".ed-crumb-title")).toBeNull());
     await waitFor(() => expect(screen.queryByText("commit-style")).toBeNull());
+  }, 15000);
+
+  it("deleting a project skill refreshes the project view, not just the global list", async () => {
+    // regression: deleting from the editor must reload the open project's
+    // skills (and the sidebar badge), not leave a stale card behind
+    const user = userEvent.setup();
+    await boot();
+    await user.click(getSidebarRow("website"));
+    await waitFor(() =>
+      expect(screen.getAllByText("component-style").length).toBeGreaterThan(0),
+    );
+    await user.click(screen.getAllByText("component-style")[0]);
+    await waitFor(() =>
+      expect(document.querySelector(".ed-crumb-title")?.textContent).toContain("component-style"),
+    );
+    await user.click(screen.getByLabelText("delete"));
+    await waitFor(() => expect(screen.getByLabelText(/cancel — \d+ seconds/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByLabelText("confirm delete")).toBeTruthy(), {
+      timeout: 9000,
+    });
+    await user.click(screen.getByLabelText("confirm delete"));
+    await waitFor(() => expect(document.querySelector(".ed-crumb-title")).toBeNull());
+    // the deleted skill is gone from the project list, which now reads empty
+    await waitFor(() => expect(screen.queryByText("component-style")).toBeNull());
+    await waitFor(() => expect(screen.getByText(/No skills found in this project/)).toBeTruthy());
   }, 15000);
 
   it("create flow: submit opens the editor with the new skill", async () => {

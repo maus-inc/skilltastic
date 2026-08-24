@@ -66,9 +66,17 @@ export function SkillEditorTab({
   });
   const [previewHtml, setPreviewHtml] = useState("");
   const [previewPct, setPreviewPct] = useState(42);
+  // bumped on every doc change so the preview refreshes even for edits
+  // that keep the character count identical (status.chars alone misses them)
+  const [docVersion, setDocVersion] = useState(0);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
 
-  const folderName = useMemo(() => skill.path.split("/").slice(-1)[0], [skill.path]);
+  const folderName = useMemo(() => {
+    // split on both separators: the desktop backend serializes `\` on Windows
+    const parts = skill.path.split(/[\\/]/);
+    return parts[parts.length - 1];
+  }, [skill.path]);
   const seers = useMemo(
     () => toolEntries.filter((t) => t.folders.some((f) => f.tool === skill.tool)),
     [toolEntries, skill.tool],
@@ -98,7 +106,7 @@ export function SkillEditorTab({
               {
                 key: "Mod-s",
                 run: () => {
-                  void saveFnRef.current();
+                  void saveFnRef.current().catch(() => {});
                   return true;
                 },
               },
@@ -124,6 +132,7 @@ export function SkillEditorTab({
                 });
               }
               if (u.docChanged) {
+                setDocVersion((v) => v + 1);
                 const d = u.state.doc.toString() !== savedTextRef.current;
                 setDirty((prev) => {
                   if (prev !== d) onDirtyChange(tabId, d);
@@ -156,6 +165,9 @@ export function SkillEditorTab({
     return () => {
       cancelled = true;
       registerApi(tabId, null);
+      // unmounting always discards the in-memory doc — clear the dirty dot
+      // so a tab never shows unsaved changes for content that no longer exists
+      onDirtyChange(tabId, false);
       viewRef.current?.destroy();
       viewRef.current = null;
     };
@@ -167,7 +179,13 @@ export function SkillEditorTab({
     const view = viewRef.current;
     if (!view) return;
     const text = view.state.doc.toString();
-    await api.writeSkillContent(skill.id, text);
+    try {
+      await api.writeSkillContent(skill.id, text);
+    } catch (e) {
+      setSaveError(String(e));
+      throw e; // keep the dirty flag — callers (unsaved guard) need to know
+    }
+    setSaveError(null);
     savedTextRef.current = text;
     setDirty(false);
     onDirtyChange(tabId, false);
@@ -194,7 +212,7 @@ export function SkillEditorTab({
       setPreviewHtml(renderMarkdown(view.state.doc.toString()));
     }, 150);
     return () => window.clearTimeout(t);
-  }, [previewOn, status.chars, loading]);
+  }, [previewOn, status.chars, docVersion, loading]);
 
   // ---- divider drag ----
   const onDividerDown = (e: React.PointerEvent) => {
@@ -282,13 +300,18 @@ export function SkillEditorTab({
           {status.lints ? `${status.lints} suggestion${status.lints === 1 ? "" : "s"}` : "clean"}
         </span>
         <span className="footer-spacer" />
+        {saveError && (
+          <span className="ed-status-item error" title={saveError}>
+            save failed
+          </span>
+        )}
         <span className={`ed-status-item ${dirty ? "dirty" : ""}`}>{dirty ? "● unsaved" : "saved"}</span>
         <Button
           variant="default"
           size="sm"
           className={dirty ? "btn-morph" : undefined}
           disabled={!dirty}
-          onClick={() => void saveFnRef.current()}
+          onClick={() => void saveFnRef.current().catch(() => {})}
           aria-label="save"
           title="⌘S"
         >

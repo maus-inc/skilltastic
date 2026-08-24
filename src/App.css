@@ -2351,6 +2351,13 @@ body,
   white-space: pre-wrap;
 }
 
+.unsaved-error {
+  color: #c66;
+  font-size: 12px;
+  white-space: pre-wrap;
+  padding: 0 14px;
+}
+
 /* --- new-skill modal: scroll inside small windows --- */
 
 .modal.create-modal {
@@ -2486,6 +2493,10 @@ body,
 
 .ed-status-item.dirty {
   color: #fca5a5;
+}
+
+.ed-status-item.error {
+  color: var(--danger-bright);
 }
 
 .ed-status .footer-spacer {

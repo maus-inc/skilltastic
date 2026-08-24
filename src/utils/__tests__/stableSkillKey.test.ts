@@ -36,4 +36,19 @@ describe("stableSkillKey", () => {
     expect(stableSkillKey(disabled)).toBe(stableSkillKey(enabled));
     expect(stableSkillKey(enabled)).toBe(enabled.id); // ancestor survives
   });
+
+  it("is stable across the .disabled move on Windows-style ids", () => {
+    const enabled = skill("C:\\Users\\u\\.claude\\skills\\x\\SKILL.md");
+    const disabled = skill("C:\\Users\\u\\.claude\\skills\\.disabled\\x\\SKILL.md");
+    expect(stableSkillKey(enabled)).toBe(stableSkillKey(disabled));
+    expect(stableSkillKey(enabled)).toContain(".claude/skills/x/SKILL.md");
+  });
+
+  it("keeps Windows skills distinct and leaves an ancestor .disabled alone", () => {
+    const a = skill("C:\\Users\\u\\.claude\\skills\\a\\SKILL.md");
+    const b = skill("C:\\Users\\u\\.claude\\skills\\b\\SKILL.md");
+    expect(stableSkillKey(a)).not.toBe(stableSkillKey(b));
+    const ancestorEnabled = skill("C:\\data\\.disabled\\proj\\.claude\\skills\\x\\SKILL.md");
+    expect(stableSkillKey(ancestorEnabled)).toContain("data/.disabled/proj");
+  });
 });

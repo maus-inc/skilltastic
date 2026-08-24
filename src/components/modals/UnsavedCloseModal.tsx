@@ -4,14 +4,22 @@ import { ModalShell } from "../ui/ModalShell";
 
 interface UnsavedCloseModalProps {
   skillName: string;
+  /** label for the save action — "save & close" when closing the tab,
+   *  "save & leave" when navigating away from a dirty editor */
+  saveLabel?: string;
+  /** surfaced when the save write failed; keeps the guard open */
+  error?: string | null;
   onSaveAndClose: () => void;
   onDiscard: () => void;
   onCancel: () => void;
 }
 
-/** VS Code-style guard for closing a dirty editor tab. */
+/** VS Code-style guard for a dirty editor — raised both when closing its
+ *  tab and when navigating away from it. Never silently discards. */
 export function UnsavedCloseModal({
   skillName,
+  saveLabel = "save & close",
+  error = null,
   onSaveAndClose,
   onDiscard,
   onCancel,
@@ -26,8 +34,9 @@ export function UnsavedCloseModal({
       </div>
       <div className="unsaved-body">
         “{skillName}” has edits that are not saved yet. Save them, or discard
-        and close the tab.
+        them.
       </div>
+      {error && <div className="unsaved-error">couldn't save: {error}</div>}
       <div className="modal-footer">
         <Button variant="ghost" size="sm" onClick={onCancel} aria-label="keep editing">
           keep editing
@@ -37,7 +46,7 @@ export function UnsavedCloseModal({
           discard
         </Button>
         <Button variant="default" size="sm" onClick={onSaveAndClose} aria-label="save and close">
-          save & close
+          {saveLabel}
         </Button>
       </div>
     </ModalShell>

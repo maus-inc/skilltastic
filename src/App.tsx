@@ -35,7 +35,13 @@ function App() {
   const [query, setQuery] = useState("");
   const [editorSkill, setEditorSkill] = useState<Skill | null>(null);
   const [dirtyTabs, setDirtyTabs] = useState<Record<string, boolean>>({});
-  const [pendingClose, setPendingClose] = useState<TitleTab | null>(null);
+  const [pendingClose, setPendingClose] = useState<{
+    tab: TitleTab;
+    /** deferred navigation, when the guard was raised by leaving a dirty
+     *  editor (rather than closing its tab) */
+    after?: () => void;
+  } | null>(null);
+  const [pendingError, setPendingError] = useState<string | null>(null);
   const editorApis = useRef(new Map<string, EditorTabApi>());
   const [addingProject, setAddingProject] = useState(false);
   const [creatingSkill, setCreatingSkill] = useState(false);
@@ -93,38 +99,72 @@ function App() {
     setTabs((prev) => (prev.some((t) => t.id === tab.id) ? prev : [...prev, tab]));
   }
 
+  /** Every way of leaving an editor routes through here: when the open
+   *  editor has unsaved edits, the action is deferred behind the
+   *  unsaved-changes guard instead of silently dropping the doc. */
+  function leaveEditor(action: () => void) {
+    if (!editorSkill) return action();
+    const id = editorTabId(editorSkill.id);
+    if (dirtyTabs[id]) {
+      setPendingClose({
+        tab: { id, kind: "editor", skill: editorSkill, label: editorSkill.name },
+        after: action,
+      });
+      return;
+    }
+    action();
+  }
+
   function selectAll() {
-    setEditorSkill(null);
-    setView({ kind: "global" });
-    setActiveToolId(ALL);
+    leaveEditor(() => {
+      setEditorSkill(null);
+      setView({ kind: "global" });
+      setActiveToolId(ALL);
+    });
   }
 
   function selectTool(toolId: string) {
-    const entry = global.toolEntries.find((t) => t.id === toolId);
-    ensureTab({ id: toolTabId(toolId), kind: "tool", toolId, label: entry?.label ?? toolId });
-    setEditorSkill(null);
-    setView({ kind: "global" });
-    setActiveToolId(toolId);
+    leaveEditor(() => {
+      const entry = global.toolEntries.find((t) => t.id === toolId);
+      ensureTab({ id: toolTabId(toolId), kind: "tool", toolId, label: entry?.label ?? toolId });
+      setEditorSkill(null);
+      setView({ kind: "global" });
+      setActiveToolId(toolId);
+    });
   }
 
   function openProject(project: ProjectInfo) {
-    ensureTab({ id: projectTabId(project.path), kind: "project", project, label: project.name });
-    setEditorSkill(null);
-    setView({ kind: "project", project });
-    projects.touch(project); // records the open for latest-first ordering
+    leaveEditor(() => {
+      ensureTab({ id: projectTabId(project.path), kind: "project", project, label: project.name });
+      setEditorSkill(null);
+      setView({ kind: "project", project });
+      projects.touch(project); // records the open for latest-first ordering
+    });
   }
 
   /** Skills open as editor tabs in the title bar, not modals. */
   function openEditor(skill: Skill) {
-    ensureTab({ id: editorTabId(skill.id), kind: "editor", skill, label: skill.name });
-    setEditorSkill(skill);
+    if (editorSkill?.id === skill.id) return; // already open
+    leaveEditor(() => {
+      ensureTab({ id: editorTabId(skill.id), kind: "editor", skill, label: skill.name });
+      setEditorSkill(skill);
+    });
   }
 
   async function deleteFromEditor(skill: Skill) {
     await global.remove(skill);
     const id = editorTabId(skill.id);
     setTabs((prev) => prev.filter((t) => t.id !== id));
+    setDirtyTabs((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
     setEditorSkill((cur) => (cur?.id === skill.id ? null : cur));
+    if (skill.scope === "project") {
+      await projects.refresh(); // keep the sidebar skill-count badge honest
+      projectView.reload(); // drop the deleted skill from the open project view
+    }
   }
 
   /** Title-bar tab clicks route back through the normal view switches. */
@@ -133,15 +173,20 @@ function App() {
     const tab = tabs.find((t) => t.id === id);
     if (!tab) return;
     if (tab.kind === "tool") {
-      setEditorSkill(null);
-      setView({ kind: "global" });
-      setActiveToolId(tab.toolId);
+      leaveEditor(() => {
+        setEditorSkill(null);
+        setView({ kind: "global" });
+        setActiveToolId(tab.toolId);
+      });
     } else if (tab.kind === "editor") {
-      setEditorSkill(tab.skill);
+      if (editorSkill?.id === tab.skill.id) return; // already active
+      leaveEditor(() => setEditorSkill(tab.skill));
     } else {
-      setEditorSkill(null);
-      setView({ kind: "project", project: tab.project });
-      projects.touch(tab.project);
+      leaveEditor(() => {
+        setEditorSkill(null);
+        setView({ kind: "project", project: tab.project });
+        projects.touch(tab.project);
+      });
     }
   }
 
@@ -152,10 +197,44 @@ function App() {
     const tab = tabs[index];
     // dirty editor tabs go through the unsaved-changes guard first
     if (tab.kind === "editor" && dirtyTabs[id]) {
-      setPendingClose(tab);
+      setPendingClose({ tab });
       return;
     }
     doCloseTab(id);
+  }
+
+  /** Discard the pending editor's edits, then run the deferred action
+   *  (navigation) or close the tab. */
+  function resolveDiscard() {
+    const pending = pendingClose;
+    if (!pending) return;
+    setPendingClose(null);
+    setPendingError(null);
+    setDirtyTabs((prev) => {
+      const next = { ...prev };
+      delete next[pending.tab.id];
+      return next;
+    });
+    if (pending.after) pending.after();
+    else doCloseTab(pending.tab.id);
+  }
+
+  /** Save the pending editor, then run the deferred action or close the
+   *  tab. A failed write keeps the guard open with the error surfaced. */
+  async function resolveSave() {
+    const pending = pendingClose;
+    if (!pending) return;
+    const id = pending.tab.id;
+    try {
+      await editorApis.current.get(id)?.save();
+    } catch (e) {
+      setPendingError(String(e));
+      return;
+    }
+    setPendingClose(null);
+    setPendingError(null);
+    if (pending.after) pending.after();
+    else doCloseTab(id);
   }
 
   function doCloseTab(id: string) {
@@ -340,21 +419,17 @@ function App() {
         )}
       </main>
 
-      {pendingClose && pendingClose.kind === "editor" && (
+      {pendingClose && pendingClose.tab.kind === "editor" && (
         <UnsavedCloseModal
-          skillName={pendingClose.skill.name}
-          onCancel={() => setPendingClose(null)}
-          onDiscard={() => {
-            const id = pendingClose.id;
+          skillName={pendingClose.tab.skill.name}
+          saveLabel={pendingClose.after ? "save & leave" : "save & close"}
+          error={pendingError}
+          onCancel={() => {
             setPendingClose(null);
-            doCloseTab(id);
+            setPendingError(null);
           }}
-          onSaveAndClose={async () => {
-            const id = pendingClose.id;
-            await editorApis.current.get(id)?.save();
-            setPendingClose(null);
-            doCloseTab(id);
-          }}
+          onDiscard={resolveDiscard}
+          onSaveAndClose={resolveSave}
         />
       )}
 

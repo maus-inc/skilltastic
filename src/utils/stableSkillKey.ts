@@ -12,8 +12,12 @@ import type { Skill } from "../types";
  */
 export function stableSkillKey(skill: Skill): string {
   // id shape: …/<skill-folder>/SKILL.md, with the managed `.disabled`
-  // marker sitting directly above the folder when disabled
-  const parts = skill.id.split("/");
+  // marker sitting directly above the folder when disabled. Split on
+  // BOTH separators — the desktop backend serializes `\` on Windows, and
+  // a `/`-only split would treat the whole path as one segment there,
+  // changing the key on every toggle (the exact remount this key exists
+  // to prevent).
+  const parts = skill.id.split(/[\\/]/);
   const marker = parts.length - 3;
   if (marker >= 0 && parts[marker] === ".disabled") {
     parts.splice(marker, 1);

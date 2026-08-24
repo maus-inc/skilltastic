@@ -70,10 +70,11 @@ retired; skills open as `kind: "editor"` tabs in the title bar.
   status bar (new, our tokens), combobox palette gains editor actions
   (save ⌘S, toggle preview ⌘⇧V), time-undo handles delete from the
   status bar.
-- Lint sources: frontmatter policy parity (Rust stays authoritative),
-  skill-craft heuristics (trigger-first descriptions, folder/name
-  match, ≤1024, no angle brackets, body budget), markdown health with
-  mechanical quick-fixes (trim trailing ws, collapse blanks).
+- Lint sources: frontmatter policy parity (`create_skill` enforces it,
+  the editor mirrors it), skill-craft heuristics (trigger-first
+  descriptions, folder/name match, ≤1024, no angle brackets, body
+  budget), markdown health with mechanical quick-fixes (trim trailing
+  ws, collapse blanks).
 - Completions: frontmatter keys + "Use when …" snippet.
 - Save discipline: ⌘S, dirty dot on the tab, unsaved-close guard
   (`UnsavedCloseModal`: keep editing / discard / save & close).
@@ -95,11 +96,14 @@ Zed/VS Code" shell escape, reference-file tree for level-3 resources.
 
 Three local sources, merged into one diagnostics stream:
 
-1. **Frontmatter policy parity.** The Rust side stays authoritative
-   (`create_skill` validation); the editor mirrors it for instant
-   feedback: name charset/≤64 chars, must equal the folder name (Agent
-   Skills spec), description ≤1024 chars, no `<`/`>` in frontmatter
-   (injection vector into system prompts).
+1. **Frontmatter policy parity.** `create_skill` enforces the hard
+   policy (name charset/≤64 chars, description ≤1024 chars, no `<`/`>`
+   in the description — an injection vector into system prompts); the
+   editor mirrors those for instant feedback, plus the name-equals-folder
+   rule from the Agent Skills spec. `write_skill_content` is deliberately
+   a raw write — rejecting saves would brick edits of pre-existing
+   skills — so on save the policy is advisory, surfaced by the editor
+   lint rather than the backend.
 2. **Markdown health.** `markdownlint` (npm in-webview) or the Rust
    crates (`markdownlint-rs` / `mkdlint`, 64 MD-rules, LSP-shaped
    output, front-matter auto-detect) over IPC. Prefer the JS lib for
