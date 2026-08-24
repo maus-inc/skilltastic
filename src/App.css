@@ -2477,6 +2477,8 @@ body,
 .ed-status {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  row-gap: 4px;
   gap: 12px;
   padding: 5px 12px;
   border-top: 1px solid var(--border);
@@ -2485,6 +2487,11 @@ body,
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.ed-status-item {
+  white-space: nowrap;
   flex-shrink: 0;
 }
 

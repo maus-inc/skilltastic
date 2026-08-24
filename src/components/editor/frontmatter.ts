@@ -65,24 +65,31 @@ export const frontmatterDecorations = ViewPlugin.fromClass(
     update(u: ViewUpdate) {
       if (u.docChanged) this.decorations = this.build(u.state);
     }
-    build(state: EditorState) {
-      const range = frontmatterRange(state.doc);
-      if (!range) return Decoration.none;
-      // RangeSetBuilder needs ranges sorted by `from` — gather then sort
-      const spans: { from: number; to: number; deco: Decoration }[] = [];
-      const fromLine = state.doc.lineAt(range.from).number;
-      const toLine = state.doc.lineAt(range.to).number;
-      for (let i = fromLine; i <= toLine; i++) {
-        const line = state.doc.line(i);
-        spans.push({ from: line.from, to: line.to, deco: lineDeco });
+    build(state: EditorState): DecorationSet {
+      // this runs inside the editor's transaction on every keystroke — a
+      // throw here would abort the input (frozen editor), so it must never
+      // propagate.
+      try {
+        const range = frontmatterRange(state.doc);
+        if (!range) return Decoration.none;
+        // RangeSetBuilder needs ranges sorted by `from` — gather then sort
+        const spans: { from: number; to: number; deco: Decoration }[] = [];
+        const fromLine = state.doc.lineAt(range.from).number;
+        const toLine = state.doc.lineAt(range.to).number;
+        for (let i = fromLine; i <= toLine; i++) {
+          const line = state.doc.line(i);
+          spans.push({ from: line.from, to: line.to, deco: lineDeco });
+        }
+        for (const s of collect(state, range)) {
+          spans.push({ from: s.from, to: s.to, deco: s.cls === "k" ? keyDeco : delimDeco });
+        }
+        spans.sort((a, b) => a.from - b.from);
+        const builder = new RangeSetBuilder<Decoration>();
+        for (const s of spans) builder.add(s.from, s.to, s.deco);
+        return builder.finish();
+      } catch {
+        return Decoration.none;
       }
-      for (const s of collect(state, range)) {
-        spans.push({ from: s.from, to: s.to, deco: s.cls === "k" ? keyDeco : delimDeco });
-      }
-      spans.sort((a, b) => a.from - b.from);
-      const builder = new RangeSetBuilder<Decoration>();
-      for (const s of spans) builder.add(s.from, s.to, s.deco);
-      return builder.finish();
     }
   },
   { decorations: (v) => v.decorations },
