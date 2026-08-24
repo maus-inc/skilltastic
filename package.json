@@ -24,7 +24,8 @@
     "morphicons": "^1.7.0",
     "motion": "^13.1.1",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-use-measure": "^2.1.7"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

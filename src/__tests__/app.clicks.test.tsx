@@ -106,16 +106,32 @@ describe("app click flows (preview mode)", () => {
     await waitFor(() => expect(screen.getAllByText("code-review").length).toBeGreaterThan(0));
   });
 
-  it("delete flow: editor delete removes the card for good", async () => {
+  it("delete flow: arming then cancelling keeps everything", async () => {
     const user = userEvent.setup();
     await boot();
     await user.click(screen.getAllByText("commit-style")[0]);
     await waitFor(() => expect(screen.getByText("commit-style / SKILL.md")).toBeTruthy());
-    await user.click(screen.getByText("delete"));
-    // the editor closes and the card is gone everywhere
-    await waitFor(() => expect(screen.queryByText("commit-style / SKILL.md")).toBeNull());
+    await user.click(screen.getByLabelText("delete"));
+    // armed: the way out is visible and the skill is untouched
+    await waitFor(() => expect(screen.getByLabelText(/cancel — \d+ seconds/)).toBeTruthy());
+    await user.click(screen.getByLabelText(/cancel — \d+ seconds/));
+    await waitFor(() => expect(screen.getByLabelText("delete")).toBeTruthy());
+    expect(screen.getByText("commit-style / SKILL.md")).toBeTruthy();
+  }, 15000);
+
+  it("delete flow: letting the countdown run removes the card for good", async () => {
+    const user = userEvent.setup();
+    await boot();
+    await user.click(screen.getAllByText("commit-style")[0]);
+    await waitFor(() => expect(screen.getByText("commit-style / SKILL.md")).toBeTruthy());
+    await user.click(screen.getByLabelText("delete"));
+    await waitFor(() => expect(screen.getByLabelText(/cancel — \d+ seconds/)).toBeTruthy());
+    // expiry commits: the editor closes and the card is gone everywhere
+    await waitFor(() => expect(screen.queryByText("commit-style / SKILL.md")).toBeNull(), {
+      timeout: 9000,
+    });
     await waitFor(() => expect(screen.queryByText("commit-style")).toBeNull());
-  });
+  }, 15000);
 
   it("edit + save flow round-trips content", async () => {
     const user = userEvent.setup();
@@ -158,9 +174,13 @@ describe("app click flows (preview mode)", () => {
     await waitFor(() => expect(screen.getAllByText("ci-checklist").length).toBeGreaterThan(0));
     // global-only skills are not in the project view
     expect(screen.queryByText("code-review")).toBeNull();
-    await user.click(screen.getByText("forget project"));
-    await waitFor(() => expect(screen.getAllByText("code-review").length).toBeGreaterThan(0));
-  });
+    await user.click(screen.getByLabelText("forget project"));
+    await waitFor(() => expect(screen.getByLabelText(/keep project — \d+ seconds/)).toBeTruthy());
+    // countdown expiry commits the forget
+    await waitFor(() => expect(screen.getAllByText("code-review").length).toBeGreaterThan(0), {
+      timeout: 9000,
+    });
+  }, 15000);
 
   it("list ⇄ cards view toggle keeps every skill visible", async () => {
     const user = userEvent.setup();

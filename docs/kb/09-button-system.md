@@ -54,14 +54,37 @@ default to 14px inside buttons and don't shrink.
 
 | Surface | Old class | Now |
 | --- | --- | --- |
-| Topbar "new skill" | `.btn` | `default` / `sm` |
-| Topbar "forget project" | `.icon-btn danger` | `destructive` / `sm` |
+| Topbar "new skill" | `.btn` | `default` / `sm` (btn-morph) |
+| Topbar "forget project" | `.icon-btn danger` | `TimedUndoAction` (arm → countdown → commit) |
 | Modal close × | `.icon-btn square` | `ghost` / `icon-sm` |
-| Editor: edit-mode toggle | `.btn active` | active → `secondary`, idle → `outline` |
-| Editor: delete | `.btn danger` | `destructive` / `sm` |
+| Editor: edit-mode toggle | `.btn active` | active → `secondary`, idle → `outline` (btn-morph) |
+| Editor: delete | `.btn danger` | `TimedUndoAction` (arm → countdown → commit) |
 | Editor: view (cancel) | `.btn` | `ghost` / `sm` |
 | Editor: save | `.btn primary` | `default` / `sm` |
 | Add-project: rescan/browse | `.btn` | `outline` / `sm` |
 | Create-skill: submit | `.btn` | `default` / `sm` |
 
 `.btn` and `.icon-btn` are removed; don't reintroduce them.
+
+## Destructive confirmation: `TimedUndoAction`
+
+Destructive actions never use `window.confirm` and never fire on a single
+click. `ui/TimedUndoAction.tsx` (the Watermelon `time-undo-action` pattern,
+restyled to these tokens) is the only confirmation UX:
+
+- **rest:** solid destructive fill (`wm-btn--destructive` colors/streak),
+  24px height, 7px radius — reads as a plain destructive button.
+- **armed (first click):** the control springs wider; fill drops to a
+  danger tint with a danger border, and `[undo mark][label][countdown]`
+  appear with the per-character spring stagger (no blur filters — perf
+  contract). The countdown chip is mono tabular-nums on the destructive
+  fill.
+- **second click cancels; expiry commits exactly once.** Unmounting while
+  armed cancels — teardown never commits (closing a modal is not consent).
+- Width animates via a measured spring (`react-use-measure`); this is the
+  one sanctioned width animation (stateful expand, not a hover morph).
+- `useSkillMutations.remove` executes only; confirmation lives in the UI
+  component that calls it.
+
+New destructive surface = wrap it in `TimedUndoAction`; do not add
+`confirm()` dialogs.

@@ -18,6 +18,7 @@ import {
   Search,
   Square,
   Trash,
+  Undo,
   ViewGrid,
   Xmark,
 } from "iconoir-react";
@@ -120,6 +121,10 @@ export function EditIcon(props: IconProps) {
 
 export function TrashIcon(props: IconProps) {
   return <Trash {...p(props)} />;
+}
+
+export function UndoIcon(props: IconProps) {
+  return <Undo {...p(props)} />;
 }
 
 export function FolderPlusIcon(props: IconProps) {

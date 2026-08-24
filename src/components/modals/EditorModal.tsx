@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "../ui/Button";
 import { provider } from "../ui/providers";
 import { api } from "../../api";
-import { CloseIcon, EditIcon, TrashIcon } from "../ui/icons";
+import { CloseIcon, EditIcon } from "../ui/icons";
+import { TimedUndoAction } from "../ui/TimedUndoAction";
 import { ModalShell } from "../ui/ModalShell";
 import { renderMarkdown } from "../../utils/markdown";
 import type { Skill, ToolEntry } from "../../types";
@@ -137,18 +138,8 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
               </>
             )}
           </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="btn-morph"
-            onClick={remove}
-            aria-label="delete"
-          >
-            <span className="btn-morph-label">delete</span>
-            <span className="btn-morph-icon">
-              <TrashIcon size={13} />
-            </span>
-          </Button>
+          {/* destructive actions confirm in-place: arm, count down, commit */}
+          <TimedUndoAction label="delete" undoLabel="cancel" seconds={6} onCommit={remove} />
           {mode === "edit" && (
             <div className="footer-spacer">
               <Button variant="ghost" size="sm" onClick={() => setMode("view")}>

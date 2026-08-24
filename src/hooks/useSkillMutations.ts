@@ -20,7 +20,8 @@ export function useSkillMutations(setSkills: Dispatch<SetStateAction<Skill[]>>) 
   }
 
   async function remove(skill: Skill) {
-    if (!confirm(`Delete "${skill.name}"? This removes its folder from disk.`)) return;
+    // confirmation is the caller's job — destructive actions run through
+    // TimedUndoAction (arm → countdown → commit); this hook only executes
     await api.deleteSkill(skill.id);
     const key = stableSkillKey(skill);
     setSkills((prev) => prev.filter((s) => stableSkillKey(s) !== key));

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ToolFolderInfo } from "../../types";
 import { Button } from "../ui/Button";
+import { TimedUndoAction } from "../ui/TimedUndoAction";
 import { PlusIcon } from "../ui/icons";
 
 interface TopbarProps {
@@ -85,9 +86,12 @@ export function Topbar({ title, subtitle, folders, query, onQueryChange, onForge
           <kbd className={`kbd ${kbdHit ? "kbd--hit" : ""}`}>⌘K</kbd>
         </div>
         {onForgetProject && (
-          <Button variant="destructive" size="sm" onClick={onForgetProject}>
-            forget project
-          </Button>
+          <TimedUndoAction
+            label="forget project"
+            undoLabel="keep project"
+            seconds={6}
+            onCommit={onForgetProject}
+          />
         )}
       </div>
     </div>

@@ -22,9 +22,11 @@ src/
                   Sidebar.tsx (tools, projects, pins, version, repo link),
                   Topbar.tsx (search, view controls)
     skills/       SkillList.tsx grid, SkillCard.tsx, SortToggle.tsx
-    modals/       EditorModal (view/edit SKILL.md), CreateSkillModal,
+    modals/             EditorModal (view/edit SKILL.md), CreateSkillModal,
                   AddProjectModal, ProjectsModal — all built on ui/ModalShell
-    ui/           ModalShell.tsx, icons.tsx (inline SVG icon set)
+    ui/                 ModalShell.tsx, icons.tsx (inline SVG icon set),
+                  Button.tsx, Switch.tsx, TimedUndoAction.tsx (arm →
+                  countdown → commit confirmation for destructive flows)
   hooks/
     useGlobalSkills.ts    loads tool entries + all user-level skills
     useProjects.ts        tracked + detected projects, add/remove/pin/touch
