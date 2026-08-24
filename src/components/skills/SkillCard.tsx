@@ -103,7 +103,7 @@ export function SkillCard({ skill, toolEntries, index = 0, onToggle, onOpen }: S
         data-tip={skill.scope === "user" ? "global skill" : "project skill"}
         data-tip-side="top"
       >
-        {skill.scope === "user" ? <GlobeIcon size={10} /> : <FolderIcon size={10} />}
+        {skill.scope === "user" ? <GlobeIcon size={12} /> : <FolderIcon size={12} />}
         <span className="chip-label">{skill.scope === "user" ? "global" : "project"}</span>
       </span>
     </motion.div>

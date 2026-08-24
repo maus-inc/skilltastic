@@ -228,7 +228,7 @@ body,
   display: flex;
   flex-shrink: 0;
   color: currentColor;
-  opacity: 0.75;
+  opacity: 0.9;
 }
 
 /* tool-tab mark cross-morph: grid glyph at rest, the tool's own model
@@ -833,7 +833,7 @@ body,
   width: 12px;
   height: 12px;
   flex-shrink: 0;
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
 .nav-item.active .nav-mark,
@@ -1501,12 +1501,37 @@ body,
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
 }
 
+/* whole-button press dip: pointer clicks play this in-out first, and the
+   action runs after — the user sees the press (Button.tsx) */
+.wm-btn.dipping {
+  animation: btn-dip 200ms var(--ease-out);
+}
+
+@keyframes btn-dip {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(1px) scale(0.96);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wm-btn.dipping {
+    animation: none;
+  }
+}
+
 /* variants */
 
 .wm-btn--default {
   background: var(--accent);
   color: #000;
-  box-shadow: var(--streak-black), 0 1px 2px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--streak-black), 0 1px 2px rgba(0, 0, 0, 0.45),
+    0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 .wm-btn--default:hover {
@@ -1815,8 +1840,8 @@ body,
 }
 
 .modal {
-  width: 640px;
-  max-height: 80vh;
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(80vh, calc(100vh - 32px));
   background: rgba(18, 18, 18, 0.92);
   backdrop-filter: var(--blur-panel);
   -webkit-backdrop-filter: var(--blur-panel);
@@ -1944,6 +1969,8 @@ body,
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  row-gap: 8px;
   gap: 8px;
   padding: 12px 16px;
   border-top: 1px solid var(--border);
@@ -2000,11 +2027,21 @@ body,
 }
 
 .readers-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
   margin-bottom: 5px;
+}
+
+/* the shared-folder note lives in a quiet tooltip behind an i mark */
+.readers-info {
+  display: flex;
+  color: var(--text-faint);
+  opacity: 0.75;
 }
 
 .readers-chips {
@@ -2013,17 +2050,10 @@ body,
   gap: 4px;
 }
 
-.readers-warn {
-  margin-top: 6px;
-  font-size: 10px;
-  color: var(--text-faint);
-  line-height: 1.4;
-}
-
 /* ---------- add-project modal ---------- */
 
 .add-modal {
-  width: 540px;
+  width: min(540px, calc(100vw - 32px));
 }
 
 .add-modal-body {

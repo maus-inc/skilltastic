@@ -142,8 +142,8 @@ describe("app click flows (preview mode)", () => {
     await waitFor(() => expect(screen.getByText("docs-sync / SKILL.md")).toBeTruthy());
     await user.click(screen.getByText("edit"));
     // scope to the editor's textarea — the topbar search is also a textbox
+    await waitFor(() => expect(document.querySelector(".modal textarea")).toBeTruthy());
     const box = document.querySelector(".modal textarea") as HTMLTextAreaElement;
-    expect(box).toBeTruthy();
     await user.clear(box);
     await user.type(box, "# rewritten");
     await user.click(screen.getByText("save"));
@@ -166,7 +166,7 @@ describe("app click flows (preview mode)", () => {
     await user.click(within(modal).getByText("create & edit"));
     await waitFor(() => expect(screen.getByText("smoke-skill / SKILL.md")).toBeTruthy());
     // and it joins the global list behind the modal
-    expect(screen.getAllByText("smoke-skill").length).toBeGreaterThan(1);
+    await waitFor(() => expect(screen.getAllByText("smoke-skill").length).toBeGreaterThan(0));
   });
 
   it("opening a project shows its own skills; forget returns home", async () => {

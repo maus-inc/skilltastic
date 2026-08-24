@@ -66,6 +66,17 @@ default to 14px inside buttons and don't shrink.
 
 `.btn` and `.icon-btn` are removed; don't reintroduce them.
 
+## Press dip (pointer feedback)
+
+Every `Button` and every `CommandMenu` entry plays a 200ms in-out press
+dip on POINTER clicks before the action runs — the WHOLE button dips
+(`translateY(1px) scale(0.96)` and back), not just its label, so the
+press is seen before the consequence. Keyboard activation
+(`e.detail === 0`) acts instantly with no animation; reduced motion
+drops the dip. The old `whileTap` spring left Button for this — one
+transform owner per element. The `default` variant additionally carries
+a cast shadow (`0 4px 12px`) so raised primary actions read with depth.
+
 ## Destructive confirmation: `TimedUndoAction`
 
 Destructive actions never use `window.confirm` and never fire on a single

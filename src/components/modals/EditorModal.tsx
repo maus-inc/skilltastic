@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "../ui/Button";
 import { provider } from "../ui/providers";
 import { api } from "../../api";
-import { CheckIcon, CloseIcon, EditIcon, EyeIcon, TrashIcon } from "../ui/icons";
+import { CheckIcon, CloseIcon, EditIcon, EyeIcon, InfoCircleIcon, TrashIcon } from "../ui/icons";
 import { TimedUndoAction } from "../ui/TimedUndoAction";
 import { ModalShell } from "../ui/ModalShell";
 import { renderMarkdown } from "../../utils/markdown";
@@ -76,7 +76,16 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
         {mode === "view" && (
           <div className="readers-box">
             <div className="readers-head">
-              read by {seers.length} tool{seers.length === 1 ? "" : "s"}
+              read by
+              {seers.length > 1 && (
+                <span
+                  className="readers-info"
+                  data-tip="These tools share one folder, so disabling or deleting the skill affects all of them."
+                  data-tip-side="top"
+                >
+                  <InfoCircleIcon size={12} />
+                </span>
+              )}
             </div>
             <div className="readers-chips">
               {seers.map((t) => {
@@ -97,11 +106,6 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
                 );
               })}
             </div>
-            {seers.length > 1 && (
-              <div className="readers-warn">
-                one copy on disk — disabling or deleting affects all {seers.length} tools
-              </div>
-            )}
           </div>
         )}
 

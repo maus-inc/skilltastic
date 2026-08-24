@@ -10,6 +10,7 @@ import {
   Globe,
   List,
   HomeSimple,
+  InfoCircle,
   Minus,
   MoreHoriz,
   NavArrowDown,
@@ -140,6 +141,10 @@ export function FolderMinusIcon(props: IconProps) {
 
 export function RefreshIcon(props: IconProps) {
   return <Refresh {...p(props)} />;
+}
+
+export function InfoCircleIcon(props: IconProps) {
+  return <InfoCircle {...p(props)} />;
 }
 
 export function FolderPlusIcon(props: IconProps) {
