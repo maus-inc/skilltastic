@@ -177,6 +177,10 @@ function App() {
   const subtitle =
     view.kind === "global" ? `${filteredGlobal.length} shown` : view.project.path;
 
+  // an empty list reads identically in both presentations — the card grid
+  // only rearranges actual cards, never the empty state
+  const currentSkills = view.kind === "global" ? filteredGlobal : filteredProjectSkills;
+
   return (
     <div className="shell">
       <TitleBar
@@ -231,7 +235,7 @@ function App() {
           onNewSkill={() => setCreatingSkill(true)}
         />
 
-        <div className={`skill-list ${viewMode === "cards" ? "skill-list--cards" : ""}`} ref={skillListRef}>
+        <div className={`skill-list ${viewMode === "cards" && currentSkills.length > 0 ? "skill-list--cards" : ""}`} ref={skillListRef}>
           {view.kind === "global" ? (
             <SkillList
               skills={filteredGlobal}

@@ -176,9 +176,12 @@ The OS title bar is replaced with a Figma-style one (`layout/TitleBar.tsx`):
   hidden on macOS).
 - **Dropdown:** the arrow opens a command popover
   (`ui/CommandMenu.tsx`, ported from Watermelon UI's combobox-1):
-  search input, grouped list (actions / tools / projects), empty state,
-  check on the active view, full keyboard support. Reuse `CommandMenu`
-  for any future searchable-select surface instead of building menus.
+  search input, grouped list ordered VIEWS-first (tools / projects,
+  hint "view", then one-shot actions), empty state, check on the
+  active view, full keyboard support. Pointer selection plays a 220ms
+  press dip (in-out) BEFORE the action runs, so the press is seen;
+  keyboard selection stays instant. Reuse `CommandMenu` for any future
+  searchable-select surface instead of building menus.
 - **Tab state** lives in `App.tsx` (`TitleTab[]`, `src/types/tab.ts`);
   the active tab is *derived* from the current view, never stored, so
   sidebar and tabs can't desync. Closing the active tab falls back to

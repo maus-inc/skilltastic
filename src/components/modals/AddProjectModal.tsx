@@ -126,7 +126,7 @@ export function AddProjectModal({ trackedPaths, onClose, onAdd, onBrowse }: AddP
                   <>
                     <span className="btn-morph-label">find recent projects</span>
                     <span className="btn-morph-icon">
-                      <RefreshIcon size={13} />
+                      <RefreshIcon size={14} />
                     </span>
                   </>
                 )}
@@ -196,7 +196,7 @@ export function AddProjectModal({ trackedPaths, onClose, onAdd, onBrowse }: AddP
                   <>
                     <span className="btn-morph-label">refresh recent projects</span>
                     <span className="btn-morph-icon">
-                      <RefreshIcon size={13} />
+                      <RefreshIcon size={14} />
                     </span>
                   </>
                 )}
@@ -212,7 +212,7 @@ export function AddProjectModal({ trackedPaths, onClose, onAdd, onBrowse }: AddP
             >
               <span className="btn-morph-label">browse folders…</span>
               <span className="btn-morph-icon">
-                <FolderPlusIcon size={13} />
+                <FolderPlusIcon size={14} />
               </span>
             </Button>
           </div>

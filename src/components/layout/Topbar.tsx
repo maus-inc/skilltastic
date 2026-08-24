@@ -91,7 +91,7 @@ export function Topbar({ title, subtitle, folders, query, onQueryChange, onForge
             undoLabel="keep project"
             seconds={6}
             onCommit={onForgetProject}
-            hoverIcon={<FolderMinusIcon size={13} />}
+            hoverIcon={<FolderMinusIcon size={14} />}
           />
         )}
       </div>

@@ -190,7 +190,7 @@ export function CreateSkillModal({
               <>
                 <span className="btn-morph-label">create & edit</span>
                 <span className="btn-morph-icon">
-                  <PagePlusIcon size={13} />
+                  <PagePlusIcon size={14} />
                 </span>
               </>
             )}

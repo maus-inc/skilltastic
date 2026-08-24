@@ -188,6 +188,46 @@ describe("app click flows (preview mode)", () => {
     });
   }, 20000);
 
+  it("command menu: pointer click dips before the view opens", async () => {
+    const user = userEvent.setup();
+    await boot();
+    await user.click(screen.getByLabelText("menu"));
+    await waitFor(() => expect(document.querySelector(".cmd")).toBeTruthy());
+    const menu = document.querySelector(".cmd") as HTMLElement;
+    await user.click(within(menu).getByText("Cursor"));
+    // the press dip plays first — the menu is still open right after the
+    // click, and the row carries the pressed state
+    expect(document.querySelector(".cmd-item.pressed")).toBeTruthy();
+    // ...then the action lands: a tab opens and the menu closes
+    await waitFor(() => expect(document.querySelector(".tb-tab")).toBeTruthy(), {
+      timeout: 2000,
+    });
+    await waitFor(() => expect(document.querySelector(".cmd")).toBeNull());
+  }, 10000);
+
+  it("empty project view reads identically in card mode", async () => {
+    const user = userEvent.setup();
+    await boot();
+    // add a project with no skills (browse stand-in yields "playground")
+    await user.click(getSidebarRow("+ add project"));
+    await waitFor(() => expect(screen.getByText("browse folders…")).toBeTruthy());
+    await user.click(screen.getByText("browse folders…"));
+    await waitFor(() => expect(screen.getByText(/No skills found/)).toBeTruthy());
+    expect(
+      (document.querySelector(".skill-list") as HTMLElement).classList.contains(
+        "skill-list--cards",
+      ),
+    ).toBe(false);
+    await user.click(screen.getByLabelText("card view"));
+    // the empty state must not rearrange into the card grid
+    expect(
+      (document.querySelector(".skill-list") as HTMLElement).classList.contains(
+        "skill-list--cards",
+      ),
+    ).toBe(false);
+    expect(screen.getByText(/No skills found/)).toBeTruthy();
+  });
+
   it("list ⇄ cards view toggle keeps every skill visible", async () => {
     const user = userEvent.setup();
     await boot();

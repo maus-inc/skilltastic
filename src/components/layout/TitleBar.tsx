@@ -94,7 +94,27 @@ export function TitleBar({
     getCurrentWindow()[action]().catch(console.error);
   };
 
+  // views first — the menu is mostly a switcher between the modes that
+  // appear as tabs; the one-shot actions live at the bottom
   const menuEntries: CommandEntry[] = [
+    ...tools.map((tool) => ({
+      id: `tool:${tool.id}`,
+      label: tool.label,
+      group: "tools",
+      hint: "view",
+      icon: <img className="cmd-item-mark" src={tool.mark} alt="" />,
+      checked: activeTabId === toolTabId(tool.id),
+      action: () => onOpenTool(tool.id),
+    })),
+    ...projects.map((project) => ({
+      id: `project:${project.path}`,
+      label: project.name,
+      group: "projects",
+      hint: "view",
+      icon: <FolderIcon size={12} />,
+      checked: activeTabId === projectTabId(project.path),
+      action: () => onOpenProject(project.path),
+    })),
     {
       id: "act:new-skill",
       label: "new skill…",
@@ -128,24 +148,6 @@ export function TitleBar({
       ),
       action: () => openUrl(REPO_URL).catch(console.error),
     },
-    ...tools.map((tool) => ({
-      id: `tool:${tool.id}`,
-      label: tool.label,
-      group: "tools",
-      hint: "tool",
-      icon: <img className="cmd-item-mark" src={tool.mark} alt="" />,
-      checked: activeTabId === toolTabId(tool.id),
-      action: () => onOpenTool(tool.id),
-    })),
-    ...projects.map((project) => ({
-      id: `project:${project.path}`,
-      label: project.name,
-      group: "projects",
-      hint: "project",
-      icon: <FolderIcon size={12} />,
-      checked: activeTabId === projectTabId(project.path),
-      action: () => onOpenProject(project.path),
-    })),
   ];
 
   return (

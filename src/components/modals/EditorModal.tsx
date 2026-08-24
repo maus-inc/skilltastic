@@ -129,7 +129,7 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
           >
             <span className="btn-morph-label">{mode === "edit" ? "view" : "edit"}</span>
             <span className="btn-morph-icon">
-              {mode === "edit" ? <EyeIcon size={13} /> : <EditIcon size={13} />}
+              {mode === "edit" ? <EyeIcon size={14} /> : <EditIcon size={14} />}
             </span>
           </Button>
           {/* destructive actions confirm in-place: arm, count down, commit */}
@@ -138,7 +138,7 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
             undoLabel="cancel"
             seconds={6}
             onCommit={remove}
-            hoverIcon={<TrashIcon size={13} />}
+            hoverIcon={<TrashIcon size={14} />}
           />
           {mode === "edit" && (
             <div className="footer-spacer">
@@ -151,7 +151,7 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
               >
                 <span className="btn-morph-label">cancel</span>
                 <span className="btn-morph-icon">
-                  <CloseIcon size={13} />
+                  <CloseIcon size={14} />
                 </span>
               </Button>
               <Button
@@ -168,7 +168,7 @@ export function EditorModal({ skill, toolEntries, onClose, onDelete }: EditorMod
                   <>
                     <span className="btn-morph-label">save</span>
                     <span className="btn-morph-icon">
-                      <CheckIcon size={13} />
+                      <CheckIcon size={14} />
                     </span>
                   </>
                 )}
