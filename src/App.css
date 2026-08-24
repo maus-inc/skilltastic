@@ -1233,7 +1233,7 @@ body,
   gap: 10px;
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 9px 12px;
   box-shadow: var(--streak), 0 1px 1px rgba(0, 0, 0, 0.3);
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -1251,7 +1251,7 @@ body,
   content: "";
   position: absolute;
   inset: -1px;
-  border-radius: 11px;
+  border-radius: 9px;
   padding: 1px;
   /* two shooting stars: a bright head with a long comet tail, plus a
      fainter shorter one ~150° behind — the orbit reads organic instead
